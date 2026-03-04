@@ -1,0 +1,12 @@
+<h1>Categories</h1>
+
+<ul>
+  {% for c in categories %}
+    <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
+  {% empty %}
+    <li>No categories yet. Add some in /admin/</li>
+  {% endfor %}
+</ul>
+
+<p><a href="{% url 'marketplace:register_customer' %}">Register as customer</a></p>
+<p><a href="{% url 'login' %}">Login</a> | <a href="{% url 'logout' %}">Logout</a></p>
