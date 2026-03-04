@@ -1,0 +1,12 @@
+<p><a href="{% url 'marketplace:home' %}">← Back</a></p>
+<h1>{{ category.name }}</h1>
+
+<ul>
+  {% for p in products %}
+    <li>
+      <b>{{ p.name }}</b> — £{{ p.price }} — {{ p.producer.producer_name }} — {{ p.get_availability_status_display }}
+    </li>
+  {% empty %}
+    <li>No available products in this category.</li>
+  {% endfor %}
+</ul>
