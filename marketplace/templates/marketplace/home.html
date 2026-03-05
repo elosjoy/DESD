@@ -8,5 +8,15 @@
   {% endfor %}
 </ul>
 
-<p><a href="{% url 'marketplace:register_customer' %}">Register as customer</a></p>
-<p><a href="{% url 'login' %}">Login</a> | <a href="{% url 'logout' %}">Logout</a></p>
+{% if user.is_authenticated %}
+  <p>Logged in as {{ user.username }}</p>
+
+  <form action="/accounts/logout/" method="post">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+  </form>
+
+{% else %}
+  <a href="/accounts/login/">Login</a>
+  <a href="/register/customer/">Register</a>
+{% endif %}
