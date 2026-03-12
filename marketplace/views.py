@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db.models import Q
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -13,7 +14,30 @@ User = get_user_model()
 
 def home(request):
     categories = Category.objects.all()
-    return render(request, "marketplace/home.html", {"categories": categories})
+    query = request.GET.get("q", "").strip()
+    products = Product.objects.none()
+
+    if query:
+        products = (
+            Product.objects.select_related("producer", "category")
+            .filter(
+                availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
+            )
+            .filter(
+                Q(name__icontains=query)
+                | Q(description__icontains=query)
+                | Q(producer__producer_name__icontains=query)
+            )
+            .distinct()
+        )
+
+    context = {
+        "categories": categories,
+        "search_query": query,
+        "search_results": products,
+        "search_performed": bool(query),
+    }
+    return render(request, "marketplace/home.html", context)
 
 
 def register_customer(request):
