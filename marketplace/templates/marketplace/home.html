@@ -1,22 +1,36 @@
-<h1>Categories</h1>
+<main>
+  <header>
+    <h1>Marketplace Categories</h1>
+    <p>Browse product groups and view available items by category.</p>
+  </header>
 
-<ul>
-  {% for c in categories %}
-    <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
-  {% empty %}
-    <li>No categories yet. Add some in /admin/</li>
-  {% endfor %}
-</ul>
+  <section aria-labelledby="categories-heading">
+    <h2 id="categories-heading">Available Categories</h2>
+    <ul>
+      {% for c in categories %}
+        <li>
+          <a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a>
+        </li>
+      {% empty %}
+        <li>No categories yet. Add some in /admin/.</li>
+      {% endfor %}
+    </ul>
+  </section>
 
-{% if user.is_authenticated %}
-  <p>Logged in as {{ user.username }}</p>
-
-  <form action="/accounts/logout/" method="post">
-    {% csrf_token %}
-    <button type="submit">Logout</button>
-  </form>
-
-{% else %}
-  <a href="/accounts/login/">Login</a>
-  <a href="/register/customer/">Register</a>
-{% endif %}
+  <section aria-labelledby="account-heading">
+    <h2 id="account-heading">Account</h2>
+    {% if user.is_authenticated %}
+      <p>You are logged in as <strong>{{ user.username }}</strong>.</p>
+      <form action="/accounts/logout/" method="post">
+        {% csrf_token %}
+        <button type="submit">Log out</button>
+      </form>
+    {% else %}
+      <p>Sign in to manage your account or create a new customer profile.</p>
+      <p>
+        <a href="/accounts/login/">Log in</a> |
+        <a href="/register/customer/">Register</a>
+      </p>
+    {% endif %}
+  </section>
+</main>
