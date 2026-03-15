@@ -7,6 +7,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .forms import CustomerRegistrationForm, ProducerRegistrationForm, ProducerProductForm
+from rest_framework.decorators import api_view
+from django.contrib.auth import authenticate, login
 from .serializers import ProducerRegistrationSerializer, ProductSerializer
 from .models import Category, Product, ProducerProfile
 from .cart import Cart
@@ -246,8 +248,38 @@ class ProducerRegistrationView(generics.CreateAPIView):
         )
 
 
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
+from rest_framework.authentication import SessionAuthentication
+
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """Session auth that does not enforce CSRF checks."""
+    def enforce_csrf(self, request):
+        return  # skip CSRF check
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def producer_login(request):
+    """Login endpoint for producers"""
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    user = authenticate(username=email, password=password)
+    if user and hasattr(user, 'producerprofile'):
+        login(request, user)
+        return Response({"detail": "Logged in successfully"})
+    return Response({"detail": "Invalid credentials"}, status=400)
+
+
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+
 class ProducerProductListCreateView(generics.ListCreateAPIView):
     """Producer can create and list their own products"""
+    authentication_classes = [CsrfExemptSessionAuthentication]
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
 
@@ -264,6 +296,7 @@ class ProducerProductListCreateView(generics.ListCreateAPIView):
 
 class ProducerProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Producer can update or delete their own products"""
+    authentication_classes = [CsrfExemptSessionAuthentication]
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
 

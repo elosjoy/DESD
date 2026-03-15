@@ -10,6 +10,7 @@ urlpatterns = [
     path("producer/products/", views.producer_products, name="producer_products"),
     path("producer/products/new/", views.producer_product_create, name="producer_product_create"),
     path("api/register/producer/", views.ProducerRegistrationView.as_view(), name="producer-register"),
+    path("api/producer/login/", views.producer_login, name="producer-login"),
     path("category/<slug:slug>/", views.category_products, name="category_products"),
     path("product/<int:pk>/", views.product_detail, name="product_detail"),
     path("cart/", views.cart_detail, name="cart_detail"),

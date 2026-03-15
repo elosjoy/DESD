@@ -73,7 +73,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'availability_status'
         ]
         
-    def create(self, validated_data):
-        # The producer is passed in the serializer context, its set here before creating the product.
-        validated_data['producer'] = self.context['producer']
-        return Product.objects.create(**validated_data)
+    # We don't need a custom create method here anymore. The view will
+    # call `serializer.save(producer=producer)` which passes the producer
+    # through to `validated_data`. Using the default implementation avoids
+    # KeyError issues when `context['producer']` isn't set.
