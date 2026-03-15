@@ -1,0 +1,73 @@
+<main>
+  <header>
+    <h1>Add New Product</h1>
+    <p>Fill in product details to publish in the marketplace.</p>
+  </header>
+
+  {% if form.non_field_errors %}
+    <section aria-label="Form errors">
+      <ul>
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <p>
+      <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label><br>
+      {{ form.name }}
+      {{ form.name.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label><br>
+      {{ form.price }}
+      {{ form.price.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label><br>
+      {{ form.category }}
+      {{ form.category.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label><br>
+      {{ form.description }}
+      {{ form.description.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.allergen_info.id_for_label }}">{{ form.allergen_info.label }}</label><br>
+      {{ form.allergen_info }}
+      {{ form.allergen_info.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.harvest_date.id_for_label }}">{{ form.harvest_date.label }}</label><br>
+      {{ form.harvest_date }}
+      {{ form.harvest_date.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.stock_quantity.id_for_label }}">{{ form.stock_quantity.label }}</label><br>
+      {{ form.stock_quantity }}
+      {{ form.stock_quantity.errors }}
+    </p>
+
+    <p>
+      <label for="{{ form.availability_status.id_for_label }}">{{ form.availability_status.label }}</label><br>
+      {{ form.availability_status }}
+      {{ form.availability_status.errors }}
+    </p>
+
+    <p>
+      <button type="submit">Save product</button>
+      <a href="{% url 'marketplace:producer_products' %}">Cancel</a>
+    </p>
+  </form>
+</main>

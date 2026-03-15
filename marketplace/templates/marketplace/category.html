@@ -1,7 +1,16 @@
 <main>
   <nav aria-label="Breadcrumb">
     <p><a href="{% url 'marketplace:home' %}">Back to categories</a></p>
+    <p><a href="{% url 'marketplace:cart_detail' %}">View cart ({{ cart_total_items }})</a></p>
   </nav>
+
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 
   <header>
     <h1>{{ category.name }}</h1>
@@ -24,10 +33,19 @@
         <tbody>
           {% for p in products %}
             <tr>
-              <th scope="row">{{ p.name }}</th>
+              <th scope="row"><a href="{% url 'marketplace:product_detail' p.id %}">{{ p.name }}</a></th>
               <td>£{{ p.price }}</td>
               <td>{{ p.producer.producer_name }}</td>
-              <td>{{ p.get_availability_status_display }}</td>
+              <td>
+                {{ p.get_availability_status_display }}
+                <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" style="margin-top: 8px;">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{% url 'marketplace:category_products' category.slug %}" />
+                  <label for="qty-{{ p.id }}">Qty</label>
+                  <input id="qty-{{ p.id }}" type="number" name="quantity" value="1" min="1" max="{{ p.stock_quantity }}" />
+                  <button type="submit">Add to cart</button>
+                </form>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
