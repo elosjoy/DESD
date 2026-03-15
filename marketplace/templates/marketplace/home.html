@@ -1,5 +1,17 @@
 <h1>Categories</h1>
 
+<p>
+  <a href="{% url 'marketplace:cart_detail' %}">View cart ({{ cart_total_items }})</a>
+</p>
+
+{% if messages %}
+  <ul>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
 <section aria-labelledby="search-heading">
   <h2 id="search-heading">Search products</h2>
   <form method="get" action="{% url 'marketplace:home' %}">
@@ -13,7 +25,7 @@
     <ul>
       {% for p in search_results %}
         <li>
-          <strong>{{ p.name }}</strong> - {{ p.category.name }} - {{ p.producer.producer_name }} - GBP {{ p.price }}
+          <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a> - {{ p.category.name }} - {{ p.producer.producer_name }} - GBP {{ p.price }}
           {% if p.description %}
             <br />{{ p.description }}
           {% endif %}
@@ -37,6 +49,9 @@
     <h2 id="account-heading">Account</h2>
     {% if user.is_authenticated %}
       <p>You are logged in as <strong>{{ user.username }}</strong>.</p>
+      <p>
+        <a href="{% url 'marketplace:producer_products' %}">Manage producer products</a>
+      </p>
       <form action="/accounts/logout/" method="post">
         {% csrf_token %}
         <button type="submit">Log out</button>
@@ -45,7 +60,8 @@
       <p>Sign in to manage your account or create a new customer profile.</p>
       <p>
         <a href="/accounts/login/">Log in</a> |
-        <a href="/register/customer/">Register</a>
+        <a href="/register/customer/">Register as customer</a> |
+        <a href="{% url 'marketplace:register_producer' %}">Register as producer</a>
       </p>
     {% endif %}
   </section>

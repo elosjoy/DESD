@@ -1,0 +1,41 @@
+<main>
+  <nav aria-label="Breadcrumb">
+    <p><a href="{% url 'marketplace:home' %}">Back to categories</a></p>
+    <p><a href="{% url 'marketplace:cart_detail' %}">View cart ({{ cart_total_items }})</a></p>
+  </nav>
+
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <header>
+    <h1>{{ product.name }}</h1>
+    <p><strong>Category:</strong> {{ product.category.name }}</p>
+    <p><strong>Producer:</strong> {{ product.producer.producer_name }}</p>
+    <p><strong>Price:</strong> £{{ product.price }}</p>
+    <p><strong>Availability:</strong> {{ product.get_availability_status_display }}</p>
+    <p><strong>In stock:</strong> {{ product.stock_quantity }}</p>
+  </header>
+
+  {% if product.description %}
+    <section aria-labelledby="desc-heading">
+      <h2 id="desc-heading">Description</h2>
+      <p>{{ product.description }}</p>
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="add-cart-heading">
+    <h2 id="add-cart-heading">Add to Cart</h2>
+    <form method="post" action="{% url 'marketplace:add_to_cart' product.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'marketplace:product_detail' product.id %}" />
+      <label for="quantity">Quantity</label>
+      <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" />
+      <button type="submit">Add to cart</button>
+    </form>
+  </section>
+</main>
