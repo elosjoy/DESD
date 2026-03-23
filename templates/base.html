@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Marketplace{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --surface: #ffffff;
+      --text: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --accent: #0f766e;
+      --accent-soft: #ecfdf5;
+      --error: #9b1c1c;
+      --error-bg: #fff5f5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+      background: linear-gradient(180deg, #eef2f4 0%, var(--bg) 100%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .page {
+      width: min(960px, 92%);
+      margin: 28px auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px;
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .site-title {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: 0.01em;
+    }
+
+    .site-subtitle {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin-top: 0;
+      line-height: 1.25;
+    }
+
+    p,
+    ul {
+      margin: 0 0 14px;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    nav {
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .inline-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      align-items: center;
+    }
+
+    .button-link {
+      display: inline-block;
+      padding: 7px 11px;
+      border: 1px solid #0b5f58;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #0b5f58;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .button-link:hover {
+      background: #f0fdfa;
+      text-decoration: none;
+    }
+
+    .button-link.primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .button-link.primary:hover {
+      background: #0b5f58;
+    }
+
+    .messages,
+    .errors {
+      margin: 0 0 16px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+
+    .messages {
+      background: var(--accent-soft);
+    }
+
+    .errors {
+      background: var(--error-bg);
+      border-color: #fecaca;
+      color: var(--error);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    form {
+      margin-top: 10px;
+    }
+
+    fieldset {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 0 0 14px;
+    }
+
+    legend {
+      padding: 0 6px;
+      font-weight: 600;
+    }
+
+    label {
+      display: inline-block;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      max-width: 380px;
+      padding: 7px 8px;
+      border: 1px solid #bcccdc;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    button {
+      padding: 8px 12px;
+      border: 1px solid #0b5f58;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0b5f58;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.96rem;
+    }
+
+    caption {
+      text-align: left;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f0f4f8;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-form p,
+    .form-row {
+      margin: 0 0 12px;
+    }
+
+    .auth-form ul.errorlist,
+    .stack ul.errorlist,
+    .form-row ul.errorlist {
+      margin: 6px 0 0;
+      color: var(--error);
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        padding: 16px;
+      }
+
+      table,
+      thead,
+      tbody,
+      th,
+      td,
+      tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        border: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      tr > :last-child {
+        border-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <div>
+        <p class="site-title"><strong>Food Marketplace</strong></p>
+      </div>
+      <div class="inline-links" aria-label="Account links">
+        <a href="{% url 'marketplace:cart_detail' %}" class="button-link">View cart{% if cart_total_items %} ({{ cart_total_items }}){% endif %}</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'marketplace:producer_products' %}" class="button-link">My products</a>
+          <form action="/accounts/logout/" method="post" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit">Log out</button>
+          </form>
+        {% else %}
+          <a href="/accounts/login/" class="button-link primary">Log in</a>
+          <a href="/register/customer/" class="button-link">Customer sign up</a>
+          <a href="{% url 'marketplace:register_producer' %}" class="button-link">Producer sign up</a>
+        {% endif %}
+      </div>
+    </header>
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

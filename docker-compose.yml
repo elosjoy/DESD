@@ -2,11 +2,13 @@ services:
   db:
     image: postgres:15
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - ./postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_DB: food_network
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
 
   web:
     build: .
@@ -17,10 +19,5 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgres://admin:password123@db:5432/food_network
-      DJANGO_SECRET_KEY: dev-secret
-      DJANGO_DEBUG: "1"
     depends_on:
       - db
-
-volumes:
-  postgres_data:

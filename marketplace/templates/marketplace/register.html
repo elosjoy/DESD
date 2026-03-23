@@ -1,11 +1,15 @@
-<main>
+{% extends "base.html" %}
+
+{% block title %}Customer Registration{% endblock %}
+
+{% block content %}
   <header>
-    <h1>Customer Registration</h1>
-    <p>Create your account to place orders and manage deliveries.</p>
+    <h1>Customer registration</h1>
+    <p class="muted">Create your account to place orders and manage deliveries.</p>
   </header>
 
   {% if messages %}
-    <section aria-label="Messages">
+    <section class="messages" aria-label="Messages">
       <h2>Updates</h2>
       <ul>
         {% for m in messages %}
@@ -16,7 +20,7 @@
   {% endif %}
 
   {% if form.non_field_errors %}
-    <section aria-label="Form errors">
+    <section class="errors" aria-label="Form errors">
       <h2>Please fix the following</h2>
       <ul>
         {% for error in form.non_field_errors %}
@@ -26,7 +30,7 @@
     </section>
   {% endif %}
 
-  <form method="post">
+  <form method="post" class="auth-form">
     {% csrf_token %}
 
     <fieldset>
@@ -81,10 +85,9 @@
       </p>
     </fieldset>
 
-    <p>
+    <div class="actions">
       <button type="submit">Create account</button>
-    </p>
+      <a href="{% url 'login' %}">Already registered? Log in</a>
+    </div>
   </form>
-
-  <p>Already registered? <a href="{% url 'login' %}">Log in</a>.</p>
-</main>
+{% endblock %}

@@ -1,7 +1,19 @@
-<h2>Login</h2>
+{% extends "base.html" %}
 
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Log in</button>
-</form>
+{% block title %}Log In{% endblock %}
+
+{% block content %}
+  <header>
+    <h1>Log in</h1>
+    <p class="muted">Enter your account details to continue.</p>
+  </header>
+
+  <form method="post" class="auth-form">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="actions">
+      <button type="submit">Log in</button>
+      <a href="{% url 'marketplace:home' %}">Back to marketplace</a>
+    </div>
+  </form>
+{% endblock %}
