@@ -1,11 +1,15 @@
-<main>
+{% extends "base.html" %}
+
+{% block title %}Producer Registration{% endblock %}
+
+{% block content %}
   <header>
-    <h1>Producer Registration</h1>
-    <p>Create a producer account to list products on the marketplace.</p>
+    <h1>Producer registration</h1>
+    <p class="muted">Create a producer account to list products on the marketplace.</p>
   </header>
 
   {% if messages %}
-    <section aria-label="Messages">
+    <section class="messages" aria-label="Messages">
       <ul>
         {% for m in messages %}
           <li>{{ m }}</li>
@@ -15,7 +19,7 @@
   {% endif %}
 
   {% if form.non_field_errors %}
-    <section aria-label="Form errors">
+    <section class="errors" aria-label="Form errors">
       <h2>Please fix the following</h2>
       <ul>
         {% for error in form.non_field_errors %}
@@ -25,7 +29,7 @@
     </section>
   {% endif %}
 
-  <form method="post">
+  <form method="post" class="auth-form">
     {% csrf_token %}
 
     <p>
@@ -76,8 +80,9 @@
       {{ form.password2.errors }}
     </p>
 
-    <p><button type="submit">Create producer account</button></p>
+    <div class="actions">
+      <button type="submit">Create producer account</button>
+      <a href="{% url 'login' %}">Already registered? Log in</a>
+    </div>
   </form>
-
-  <p>Already registered? <a href="{% url 'login' %}">Log in</a>.</p>
-</main>
+{% endblock %}

@@ -1,19 +1,25 @@
-<main>
-  <nav aria-label="Breadcrumb">
-    <p><a href="{% url 'marketplace:home' %}">Continue shopping</a></p>
+{% extends "base.html" %}
+
+{% block title %}Your Cart{% endblock %}
+
+{% block content %}
+  <nav aria-label="Breadcrumb" class="inline-links">
+    <a href="{% url 'marketplace:home' %}">Continue shopping</a>
   </nav>
 
   <header>
-    <h1>Your Cart</h1>
-    <p>Total items: {{ cart_total_items }}</p>
+    <h1>Your cart</h1>
+    <p class="muted">Total items: {{ cart_total_items }}</p>
   </header>
 
   {% if messages %}
-    <ul>
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
+    <section class="messages" aria-label="Messages">
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
 
   {% if cart %}
@@ -36,7 +42,7 @@
             </th>
             <td>£{{ item.price }}</td>
             <td>
-              <form method="post" action="{% url 'marketplace:update_cart_item' item.product.id %}">
+              <form method="post" action="{% url 'marketplace:update_cart_item' item.product.id %}" class="actions">
                 {% csrf_token %}
                 <label for="qty-{{ item.product.id }}">Qty</label>
                 <input id="qty-{{ item.product.id }}" type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.product.stock_quantity }}" />
@@ -59,4 +65,4 @@
   {% else %}
     <p>Your cart is empty.</p>
   {% endif %}
-</main>
+{% endblock %}

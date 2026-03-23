@@ -1,15 +1,24 @@
-<main>
+{% extends "base.html" %}
+
+{% block title %}Producer Products{% endblock %}
+
+{% block content %}
   <header>
     <h1>{{ producer.producer_name }} Product Management</h1>
-    <p><a href="{% url 'marketplace:producer_product_create' %}">Add New Product</a></p>
+    <div class="inline-links">
+      <a href="{% url 'marketplace:producer_product_create' %}">Add new product</a>
+      <a href="{% url 'marketplace:home' %}">Back to home</a>
+    </div>
   </header>
 
   {% if messages %}
-    <ul>
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
+    <section class="messages" aria-label="Messages">
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
 
   {% if products %}
@@ -39,6 +48,4 @@
   {% else %}
     <p>No products listed yet.</p>
   {% endif %}
-
-  <p><a href="{% url 'marketplace:home' %}">Back to home</a></p>
-</main>
+{% endblock %}

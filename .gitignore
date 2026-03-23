@@ -1,0 +1,4 @@
+postgres_data/
+*.sqlite3
+__pycache__/
+.env

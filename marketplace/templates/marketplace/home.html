@@ -1,68 +1,63 @@
-<h1>Categories</h1>
+{% extends "base.html" %}
 
-<p>
-  <a href="{% url 'marketplace:cart_detail' %}">View cart ({{ cart_total_items }})</a>
-</p>
+{% block title %}Marketplace Home{% endblock %}
 
-{% if messages %}
-  <ul>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
+{% block content %}
+  <header>
+    <h1>Marketplace</h1>
+    <p class="muted">Browse by category or search for a specific product.</p>
+  </header>
 
-<section aria-labelledby="search-heading">
-  <h2 id="search-heading">Search products</h2>
-  <form method="get" action="{% url 'marketplace:home' %}">
-    <label for="search-input">Keyword</label>
-    <input id="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Try apples, honey, or producer name" />
-    <button type="submit">Search</button>
-  </form>
+  <nav aria-label="Primary links" class="inline-links">
+    <a href="{% url 'marketplace:home' %}">Refresh home</a>
+  </nav>
 
-  {% if search_performed %}
-    <h3>Results for "{{ search_query }}"</h3>
-    <ul>
-      {% for p in search_results %}
-        <li>
-          <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a> - {{ p.category.name }} - {{ p.producer.producer_name }} - GBP {{ p.price }}
-          {% if p.description %}
-            <br />{{ p.description }}
-          {% endif %}
-        </li>
-      {% empty %}
-        <li>No matching products found.</li>
-      {% endfor %}
-    </ul>
+  {% if messages %}
+    <section class="messages" aria-label="Messages">
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
-</section>
 
-<ul>
-  {% for c in categories %}
-    <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
-  {% empty %}
-    <li>No categories yet. Add some in /admin/</li>
-  {% endfor %}
-</ul>
+  <section aria-labelledby="search-heading" class="stack">
+    <h2 id="search-heading">Search products</h2>
+    <form method="get" action="{% url 'marketplace:home' %}" class="actions">
+      <label for="search-input">Keyword</label>
+      <input id="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Try apples, honey, or producer name" />
+      <button type="submit">Search</button>
+    </form>
 
-  <section aria-labelledby="account-heading">
-    <h2 id="account-heading">Account</h2>
-    {% if user.is_authenticated %}
-      <p>You are logged in as <strong>{{ user.username }}</strong>.</p>
-      <p>
-        <a href="{% url 'marketplace:producer_products' %}">Manage producer products</a>
-      </p>
-      <form action="/accounts/logout/" method="post">
-        {% csrf_token %}
-        <button type="submit">Log out</button>
-      </form>
-    {% else %}
-      <p>Sign in to manage your account or create a new customer profile.</p>
-      <p>
-        <a href="/accounts/login/">Log in</a> |
-        <a href="/register/customer/">Register as customer</a> |
-        <a href="{% url 'marketplace:register_producer' %}">Register as producer</a>
-      </p>
+    {% if search_performed %}
+      <h3>Results for "{{ search_query }}"</h3>
+      <ul>
+        {% for p in search_results %}
+          <li>
+            <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
+            ({{ p.category.name }}) by {{ p.producer.producer_name }} - GBP {{ p.price }}
+            {% if p.description %}
+              <br />
+              <span class="muted">{{ p.description }}</span>
+            {% endif %}
+          </li>
+        {% empty %}
+          <li>No matching products found.</li>
+        {% endfor %}
+      </ul>
     {% endif %}
   </section>
-</main>
+
+  <section aria-labelledby="categories-heading" class="stack">
+    <h2 id="categories-heading">Categories</h2>
+    <ul>
+      {% for c in categories %}
+        <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
+      {% empty %}
+        <li>No categories yet. Add some in /admin/</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+{% endblock %}

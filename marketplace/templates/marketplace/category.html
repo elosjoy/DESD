@@ -1,24 +1,29 @@
-<main>
-  <nav aria-label="Breadcrumb">
-    <p><a href="{% url 'marketplace:home' %}">Back to categories</a></p>
-    <p><a href="{% url 'marketplace:cart_detail' %}">View cart ({{ cart_total_items }})</a></p>
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }}{% endblock %}
+
+{% block content %}
+  <nav aria-label="Breadcrumb" class="inline-links">
+    <a href="{% url 'marketplace:home' %}">Back to categories</a>
   </nav>
 
   {% if messages %}
-    <ul>
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
+    <section class="messages" aria-label="Messages">
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
 
   <header>
     <h1>{{ category.name }}</h1>
-    <p>Products currently available in this category.</p>
+    <p class="muted">Products currently available in this category.</p>
   </header>
 
   <section aria-labelledby="products-heading">
-    <h2 id="products-heading">Product List</h2>
+    <h2 id="products-heading">Product list</h2>
     {% if products %}
       <table>
         <caption>Available products for {{ category.name }}</caption>
@@ -27,7 +32,7 @@
             <th scope="col">Product</th>
             <th scope="col">Price</th>
             <th scope="col">Producer</th>
-            <th scope="col">Availability</th>
+            <th scope="col">Availability and action</th>
           </tr>
         </thead>
         <tbody>
@@ -38,7 +43,7 @@
               <td>{{ p.producer.producer_name }}</td>
               <td>
                 {{ p.get_availability_status_display }}
-                <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" style="margin-top: 8px;">
+                <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" class="actions">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{% url 'marketplace:category_products' category.slug %}" />
                   <label for="qty-{{ p.id }}">Qty</label>
@@ -54,4 +59,4 @@
       <p>No available products in this category.</p>
     {% endif %}
   </section>
-</main>
+{% endblock %}

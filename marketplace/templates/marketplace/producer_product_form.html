@@ -1,11 +1,15 @@
-<main>
+{% extends "base.html" %}
+
+{% block title %}Add New Product{% endblock %}
+
+{% block content %}
   <header>
-    <h1>Add New Product</h1>
-    <p>Fill in product details to publish in the marketplace.</p>
+    <h1>Add new product</h1>
+    <p class="muted">Fill in product details to publish in the marketplace.</p>
   </header>
 
   {% if form.non_field_errors %}
-    <section aria-label="Form errors">
+    <section class="errors" aria-label="Form errors">
       <ul>
         {% for error in form.non_field_errors %}
           <li>{{ error }}</li>
@@ -14,60 +18,60 @@
     </section>
   {% endif %}
 
-  <form method="post">
+  <form method="post" class="stack">
     {% csrf_token %}
 
-    <p>
-      <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
       {{ form.name }}
       {{ form.name.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label>
       {{ form.price }}
       {{ form.price.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
       {{ form.category }}
       {{ form.category.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
       {{ form.description }}
       {{ form.description.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.allergen_info.id_for_label }}">{{ form.allergen_info.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.allergen_info.id_for_label }}">{{ form.allergen_info.label }}</label>
       {{ form.allergen_info }}
       {{ form.allergen_info.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.harvest_date.id_for_label }}">{{ form.harvest_date.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.harvest_date.id_for_label }}">{{ form.harvest_date.label }}</label>
       {{ form.harvest_date }}
       {{ form.harvest_date.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.stock_quantity.id_for_label }}">{{ form.stock_quantity.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.stock_quantity.id_for_label }}">{{ form.stock_quantity.label }}</label>
       {{ form.stock_quantity }}
       {{ form.stock_quantity.errors }}
-    </p>
+    </div>
 
-    <p>
-      <label for="{{ form.availability_status.id_for_label }}">{{ form.availability_status.label }}</label><br>
+    <div class="form-row">
+      <label for="{{ form.availability_status.id_for_label }}">{{ form.availability_status.label }}</label>
       {{ form.availability_status }}
       {{ form.availability_status.errors }}
-    </p>
+    </div>
 
-    <p>
+    <div class="actions">
       <button type="submit">Save product</button>
       <a href="{% url 'marketplace:producer_products' %}">Cancel</a>
-    </p>
+    </div>
   </form>
-</main>
+{% endblock %}
