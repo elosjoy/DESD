@@ -2,7 +2,7 @@
 
 ## Brief rundown of changes
 
-Implemented around test cases **TC-001**, **TC-003**, and **TC-006**.
+Implemented around test cases **TC-001**, **TC-003**, and **TC-006**. Along with **TC-011**, **TC-014** and **TC-015**
 
 - Added producer web registration flow:
   - `register/producer/` route
