@@ -22,9 +22,22 @@
     <p><strong>Category:</strong> {{ product.category.name }}</p>
     <p><strong>Producer:</strong> {{ product.producer.producer_name }}</p>
     <p><strong>Price:</strong> £{{ product.price }}</p>
+    <p><strong>Organic certification:</strong> {% if product.is_certified_organic %}Certified Organic{% else %}Not Certified Organic{% endif %}</p>
     <p><strong>Availability:</strong> {{ product.get_availability_status_display }}</p>
     <p><strong>In stock:</strong> {{ product.stock_quantity }}</p>
   </header>
+
+  <section aria-labelledby="allergen-heading" class="stack">
+    <h2 id="allergen-heading">Allergen Information</h2>
+    <p>
+      <strong>Warning:</strong>
+      {% if product.allergen_info %}
+        Contains: {{ product.allergen_info }}
+      {% else %}
+        No common allergens
+      {% endif %}
+    </p>
+  </section>
 
   {% if product.description %}
     <section aria-labelledby="desc-heading">
@@ -40,6 +53,10 @@
       <input type="hidden" name="next" value="{% url 'marketplace:product_detail' product.id %}" />
       <label for="quantity">Quantity</label>
       <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" />
+      <label for="allergen-ack">
+        <input id="allergen-ack" type="checkbox" name="allergen_ack" />
+        I have reviewed the allergen information above.
+      </label>
       <button type="submit">Add to cart</button>
     </form>
   </section>

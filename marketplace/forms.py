@@ -102,6 +102,7 @@ class ProducerProductForm(forms.ModelForm):
             "description",
             "price",
             "unit",
+            "is_certified_organic",
             "availability_status",
             "stock_quantity",
             "allergen_info",
@@ -112,4 +113,10 @@ class ProducerProductForm(forms.ModelForm):
         value = self.cleaned_data["stock_quantity"]
         if value < 0:
             raise forms.ValidationError("Stock quantity cannot be negative.")
+        return value
+
+    def clean_allergen_info(self):
+        value = (self.cleaned_data.get("allergen_info") or "").strip()
+        if not value:
+            raise forms.ValidationError("Allergen information is required. Use 'No common allergens' where appropriate.")
         return value
