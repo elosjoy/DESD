@@ -36,7 +36,7 @@
         {% for p in search_results %}
           <li>
             <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
-            ({{ p.category.name }}) by {{ p.producer.producer_name }} - GBP {{ p.price }}
+            ({{ p.category.name }}) by {{ p.producer.producer_name }} - GBP {{ p.price }}{% if p.unit %} per {{ p.unit }}{% endif %}
             {% if p.description %}
               <br />
               <span class="muted">{{ p.description }}</span>
@@ -46,6 +46,28 @@
           <li>No matching products found.</li>
         {% endfor %}
       </ul>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="account-heading">
+    <h2 id="account-heading">Account</h2>
+    {% if user.is_authenticated %}
+      <p>You are logged in as <strong>{{ user.username }}</strong>.</p>
+      {% if is_producer %}
+        <p><a href="{% url 'marketplace:producer_products' %}">Manage products</a></p>
+      {% endif %}
+      <p>Cart items: {{ cart_total_items }}</p>
+      <form action="/accounts/logout/" method="post">
+        {% csrf_token %}
+        <button type="submit">Log out</button>
+      </form>
+    {% else %}
+      <p>Sign in to manage your account or create a new profile.</p>
+      <p>
+        <a href="/accounts/login/">Log in</a> |
+        <a href="/register/customer/">Register as customer</a> |
+        <a href="/register/producer/">Register as producer</a>
+      </p>
     {% endif %}
   </section>
 

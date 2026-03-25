@@ -51,13 +51,13 @@ class CustomerRegistrationForm(forms.Form):
 
 
 class ProducerRegistrationForm(forms.Form):
-    producer_name = forms.CharField(max_length=200)
-    contact_name = forms.CharField(max_length=200)
+    producer_name = forms.CharField(max_length=200, label="Business name")
+    contact_name = forms.CharField(max_length=200, label="Contact name")
     email = forms.EmailField()
     phone = forms.CharField(max_length=30)
-    address = forms.CharField(widget=forms.Textarea)
+    address = forms.CharField(widget=forms.Textarea, label="Business address")
     postcode = forms.CharField(max_length=20)
-    password1 = forms.CharField(widget=forms.PasswordInput)
+    password1 = forms.CharField(widget=forms.PasswordInput, label="Password")
     password2 = forms.CharField(widget=forms.PasswordInput, label="Confirm password")
 
     def clean_email(self):
@@ -70,13 +70,10 @@ class ProducerRegistrationForm(forms.Form):
         cleaned = super().clean()
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
-
         if p1 and p2 and p1 != p2:
             self.add_error("password2", "Passwords do not match.")
-
         if p1:
             validate_password(p1)
-
         return cleaned
 
     def save(self):
@@ -101,11 +98,18 @@ class ProducerProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name",
-            "price",
             "category",
             "description",
+            "price",
+            "unit",
+            "availability_status",
+            "stock_quantity",
             "allergen_info",
             "harvest_date",
-            "stock_quantity",
-            "availability_status",
         ]
+
+    def clean_stock_quantity(self):
+        value = self.cleaned_data["stock_quantity"]
+        if value < 0:
+            raise forms.ValidationError("Stock quantity cannot be negative.")
+        return value

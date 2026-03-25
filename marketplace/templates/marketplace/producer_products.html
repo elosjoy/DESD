@@ -29,6 +29,7 @@
           <th scope="col">Name</th>
           <th scope="col">Category</th>
           <th scope="col">Price</th>
+          <th scope="col">Unit</th>
           <th scope="col">Stock</th>
           <th scope="col">Availability</th>
         </tr>
@@ -39,6 +40,7 @@
             <td>{{ product.name }}</td>
             <td>{{ product.category.name }}</td>
             <td>£{{ product.price }}</td>
+            <td>{% if product.unit %}{{ product.unit }}{% else %}-{% endif %}</td>
             <td>{{ product.stock_quantity }}</td>
             <td>{{ product.get_availability_status_display }}</td>
           </tr>
