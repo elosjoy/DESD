@@ -1,14 +1,22 @@
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .forms import CustomerRegistrationForm, ProducerRegistrationForm, ProducerProductForm
-from .serializers import ProducerRegistrationSerializer, ProductSerializer
-from .models import Category, Product, ProducerProfile
+from .forms import (
+    CustomerRegistrationForm,
+    ProducerRegistrationForm,
+    ProducerProductForm,
+)
+from .serializers import ProducerRegistrationSerializer, ProductSerializer, ProducerOrderItemSerializer
+from .models import Category, Product, ProducerProfile, Order, OrderItem, Settlement
+from .permissions import IsProducerUser
 from .cart import Cart
 from django.contrib.auth import get_user_model
 
@@ -113,161 +121,96 @@ def producer_product_create(request):
     return render(request, "marketplace/producer_product_form.html", {"form": form})
 
 
-def category_products(request, slug):
-    cart = Cart(request)
-    category = get_object_or_404(Category, slug=slug)
-    products = Product.objects.filter(
-        category=category,
-        availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
+@login_required
+def producer_orders(request):
+    # Security check for web dashboard: only producers can access incoming orders.
+    try:
+        producer = ProducerProfile.objects.get(user=request.user)
+    except ProducerProfile.DoesNotExist:
+        messages.error(request, "Only producer accounts can view incoming orders.")
+        return redirect("marketplace:home")
+
+    order_items = (
+        OrderItem.objects.filter(producer=producer)
+        .select_related("order", "product")
+        .order_by("-order__created_at", "id")
     )
+
     return render(
         request,
-        "marketplace/category.html",
+        "marketplace/producer_orders.html",
+        {"order_items": order_items},
+    )
+
+
+@login_required
+def producer_weekly_settlement(request):
+    # Security check for web dashboard: only producers can access settlement data.
+    try:
+        producer = ProducerProfile.objects.get(user=request.user)
+    except ProducerProfile.DoesNotExist:
+        messages.error(request, "Only producer accounts can view settlements.")
+        return redirect("marketplace:home")
+
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+
+    # Settlement is based on completed/delivered orders for this producer in the selected week.
+    weekly_items = OrderItem.objects.filter(
+        producer=producer,
+        order__status__in=[Order.COMPLETED, Order.DELIVERED],
+        order__delivered_at__date__range=(week_start, week_end),
+    )
+
+    line_total_expression = ExpressionWrapper(
+        F("quantity") * F("unit_price"),
+        output_field=DecimalField(max_digits=12, decimal_places=2),
+    )
+
+    totals = weekly_items.aggregate(total_order_value=Sum(line_total_expression))
+    total_order_value = totals["total_order_value"] or Decimal("0.00")
+
+    commission_total = (total_order_value * Decimal("0.05")).quantize(Decimal("0.01"))
+    producer_payment_total = (total_order_value - commission_total).quantize(Decimal("0.01"))
+
+    settlement, created = Settlement.objects.get_or_create(
+        producer=producer,
+        week_start=week_start,
+        week_end=week_end,
+        defaults={
+            "total_order_value": total_order_value,
+            "commission_total": commission_total,
+            "producer_payment_total": producer_payment_total,
+        },
+    )
+
+    if not created:
+        settlement.total_order_value = total_order_value
+        settlement.commission_total = commission_total
+        settlement.producer_payment_total = producer_payment_total
+        settlement.save(update_fields=["total_order_value", "commission_total", "producer_payment_total"])
+
+    return render(
+        request,
+        "marketplace/producer_settlement.html",
         {
-            "category": category,
-            "products": products,
-            "cart_total_items": cart.get_total_items(),
+            "settlement": settlement,
+            "week_order_count": weekly_items.count(),
         },
     )
 
 
-def product_detail(request, pk):
-    cart = Cart(request)
-    product = get_object_or_404(
-        Product,
-        pk=pk,
-        availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
-    )
-    return render(
-        request,
-        "marketplace/product_detail.html",
-        {"product": product, "cart_total_items": cart.get_total_items()},
-    )
+class ProducerOrderListView(generics.ListAPIView):
+    """Producer can view only their own completed/delivered order line items."""
 
-
-def cart_detail(request):
-    cart = Cart(request)
-    return render(
-        request,
-        "marketplace/cart.html",
-        {"cart": cart, "cart_total_items": cart.get_total_items()},
-    )
-
-
-@require_POST
-def add_to_cart(request, product_id):
-    cart = Cart(request)
-    product = get_object_or_404(Product, pk=product_id)
-
-    quantity_raw = request.POST.get("quantity", "1")
-    try:
-        quantity = int(quantity_raw)
-    except (TypeError, ValueError):
-        quantity = 1
-
-    if quantity < 1:
-        messages.error(request, "Quantity must be at least 1.")
-        return redirect("marketplace:product_detail", pk=product.id)
-
-    if product.availability_status not in [Product.AVAILABLE, Product.IN_SEASON]:
-        messages.error(request, "This product is currently unavailable.")
-        return redirect("marketplace:product_detail", pk=product.id)
-
-    if product.stock_quantity <= 0:
-        messages.error(request, "This product is out of stock.")
-        return redirect("marketplace:product_detail", pk=product.id)
-
-    if quantity > product.stock_quantity:
-        quantity = product.stock_quantity
-        messages.warning(
-            request,
-            f"Only {product.stock_quantity} in stock. Added available quantity.",
-        )
-
-    cart.add(product=product, quantity=quantity)
-    messages.success(request, f"Added {quantity} × {product.name} to cart.")
-
-    next_url = request.POST.get("next", "").strip()
-    if next_url:
-        return redirect(next_url)
-
-    return redirect("marketplace:cart_detail")
-
-
-@require_POST
-def update_cart_item(request, product_id):
-    cart = Cart(request)
-    product = get_object_or_404(Product, pk=product_id)
-
-    quantity_raw = request.POST.get("quantity", "1")
-    try:
-        quantity = int(quantity_raw)
-    except (TypeError, ValueError):
-        quantity = 1
-
-    if quantity <= 0:
-        cart.remove(product)
-        messages.success(request, f"Removed {product.name} from cart.")
-    else:
-        if quantity > product.stock_quantity:
-            quantity = product.stock_quantity
-            messages.warning(
-                request,
-                f"Only {product.stock_quantity} in stock. Quantity adjusted.",
-            )
-        cart.add(product=product, quantity=quantity, override_quantity=True)
-        messages.success(request, f"Updated {product.name} quantity to {quantity}.")
-
-    return redirect("marketplace:cart_detail")
-
-
-@require_POST
-def remove_from_cart(request, product_id):
-    cart = Cart(request)
-    product = get_object_or_404(Product, pk=product_id)
-    cart.remove(product)
-    messages.success(request, f"Removed {product.name} from cart.")
-    return redirect("marketplace:cart_detail")
-
-
-class ProducerRegistrationView(generics.CreateAPIView):
-    """API endpoint for producer registration"""
-    queryset = User.objects.all()
-    serializer_class = ProducerRegistrationSerializer
-    permission_classes = []  # Allow unauthenticated access
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(
-            {"detail": "Producer account created successfully. Please log in."},
-            status=status.HTTP_201_CREATED
-        )
-
-
-class ProducerProductListCreateView(generics.ListCreateAPIView):
-    """Producer can create and list their own products"""
-    serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated]
+    serializer_class = ProducerOrderItemSerializer
+    # Security check: enforce authenticated producer-only access.
+    permission_classes = [IsAuthenticated, IsProducerUser]
 
     def get_queryset(self):
-        """Only show this producer's products"""
         producer = get_object_or_404(ProducerProfile, user=self.request.user)
-        return Product.objects.filter(producer=producer)
-
-    def perform_create(self, serializer):
-        """Automatically link product to the authenticated producer"""
-        producer = get_object_or_404(ProducerProfile, user=self.request.user)
-        serializer.save(producer=producer)
-
-
-class ProducerProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Producer can update or delete their own products"""
-    serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Only allow editing own products"""
-        producer = get_object_or_404(ProducerProfile, user=self.request.user)
-        return Product.objects.filter(producer=producer)
+        return OrderItem.objects.select_related("order", "product").filter(
+            producer=producer,
+            order__status__in=[Order.COMPLETED, Order.DELIVERED],
+        )

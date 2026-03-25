@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Settlement{% endblock %}
+
+{% block content %}
+  <h1>Weekly Settlement Summary</h1>
+  <p class="muted">This page shows internal settlement calculations only.</p>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>Producer</th>
+        <td>{{ settlement.producer.producer_name }}</td>
+      </tr>
+      <tr>
+        <th>Week</th>
+        <td>{{ settlement.week_start }} to {{ settlement.week_end }}</td>
+      </tr>
+      <tr>
+        <th>Delivered/Completed Order Lines</th>
+        <td>{{ week_order_count }}</td>
+      </tr>
+      <tr>
+        <th>Total Order Value</th>
+        <td>£{{ settlement.total_order_value }}</td>
+      </tr>
+      <tr>
+        <th>Commission (5%)</th>
+        <td>£{{ settlement.commission_total }}</td>
+      </tr>
+      <tr>
+        <th>Producer Payment (95%)</th>
+        <td><strong>£{{ settlement.producer_payment_total }}</strong></td>
+      </tr>
+      <tr>
+        <th>Calculated At</th>
+        <td>{{ settlement.created_at }}</td>
+      </tr>
+    </tbody>
+  </table>
+{% endblock %}

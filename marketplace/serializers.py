@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from .models import ProducerProfile, Product
+from .models import ProducerProfile, Product, OrderItem
 
 User = get_user_model()
 
@@ -70,10 +70,36 @@ class ProductSerializer(serializers.ModelSerializer):
             'allergen_info',
             'harvest_date',
             'stock_quantity',
-            'availability_status'
+            'availability_status',
+            'seasonal_availability',
         ]
         
     def create(self, validated_data):
         # The producer is passed in the serializer context, its set here before creating the product.
         validated_data['producer'] = self.context['producer']
         return Product.objects.create(**validated_data)
+
+
+class ProducerOrderItemSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+    order_status = serializers.CharField(source="order.status", read_only=True)
+    delivered_at = serializers.DateTimeField(source="order.delivered_at", read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id",
+            "order_id",
+            "order_status",
+            "delivered_at",
+            "product",
+            "product_name",
+            "quantity",
+            "unit_price",
+            "line_total",
+        ]
+
+    def get_line_total(self, obj):
+        return obj.quantity * obj.unit_price
