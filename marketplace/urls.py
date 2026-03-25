@@ -9,6 +9,12 @@ urlpatterns = [
     path("register/producer/", views.register_producer, name="register_producer"),
     path("producer/products/", views.producer_products, name="producer_products"),
     path("producer/products/new/", views.producer_product_create, name="producer_product_create"),
+    path("producer/orders/", views.producer_orders, name="producer_orders"),
+    path("producer/order-items/<int:order_item_id>/status/", views.producer_update_order_status, name="producer_update_order_status"),
+    path("producer/settlement/", views.producer_weekly_settlement, name="producer_weekly_settlement"),
+    path("orders/", views.customer_orders, name="customer_orders"),
+    path("orders/<int:order_id>/", views.customer_order_detail, name="customer_order_detail"),
+    path("orders/<int:order_id>/reorder/", views.reorder_from_order, name="reorder_from_order"),
     path("api/register/producer/", views.ProducerRegistrationView.as_view(), name="producer-register"),
     path("category/<slug:slug>/", views.category_products, name="category_products"),
     path("product/<int:pk>/", views.product_detail, name="product_detail"),
@@ -20,4 +26,5 @@ urlpatterns = [
     # Producer product management
     path("api/producer/products/", views.ProducerProductListCreateView.as_view(), name="producer-products"),
     path("api/producer/products/<int:pk>/", views.ProducerProductDetailView.as_view(), name="producer-product-detail"),
+    path("api/producer/orders/", views.ProducerOrderListView.as_view(), name="producer-orders"),
 ]

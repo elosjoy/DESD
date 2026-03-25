@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 
-from .models import CustomerProfile, ProducerProfile, Product
+from .models import CustomerProfile, ProducerProfile, Product, OrderItem
 
 
 class CustomerRegistrationForm(forms.Form):
@@ -108,4 +108,19 @@ class ProducerProductForm(forms.ModelForm):
             "harvest_date",
             "stock_quantity",
             "availability_status",
+            "seasonal_availability",
+        ]
+
+
+class ProducerOrderStatusUpdateForm(forms.Form):
+    new_status = forms.ChoiceField(choices=[])
+    producer_note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, **kwargs):
+        allowed_statuses = kwargs.pop("allowed_statuses", [])
+        super().__init__(*args, **kwargs)
+        self.fields["new_status"].choices = [
+            (status, label)
+            for status, label in OrderItem.STATUS_CHOICES
+            if status in allowed_statuses
         ]
