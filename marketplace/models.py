@@ -53,6 +53,7 @@ class Product(models.Model):
 
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=8, decimal_places=2)
+    unit = models.CharField(max_length=50, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     producer = models.ForeignKey(ProducerProfile, on_delete=models.CASCADE, related_name='products')
     description = models.TextField(blank=True)

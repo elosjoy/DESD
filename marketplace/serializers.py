@@ -65,6 +65,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'price',
+            'unit',
             'category',
             'description',
             'allergen_info',
@@ -72,8 +73,4 @@ class ProductSerializer(serializers.ModelSerializer):
             'stock_quantity',
             'availability_status'
         ]
-        
-    # We don't need a custom create method here anymore. The view will
-    # call `serializer.save(producer=producer)` which passes the producer
-    # through to `validated_data`. Using the default implementation avoids
-    # KeyError issues when `context['producer']` isn't set.
+

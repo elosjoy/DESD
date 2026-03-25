@@ -39,7 +39,7 @@
           {% for p in products %}
             <tr>
               <th scope="row"><a href="{% url 'marketplace:product_detail' p.id %}">{{ p.name }}</a></th>
-              <td>£{{ p.price }}</td>
+              <td>£{{ p.price }}{% if p.unit %} per {{ p.unit }}{% endif %}</td>
               <td>{{ p.producer.producer_name }}</td>
               <td>
                 {{ p.get_availability_status_display }}

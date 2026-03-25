@@ -37,12 +37,16 @@ def home(request):
             .distinct()
         )
 
+    is_producer = request.user.is_authenticated and ProducerProfile.objects.filter(user=request.user).exists()
+
     context = {
         "categories": categories,
         "search_query": query,
         "search_results": products,
         "search_performed": bool(query),
         "cart_total_items": cart.get_total_items(),
+        "is_producer": is_producer,
+        "is_producer": is_producer,
     }
     return render(request, "marketplace/home.html", context)
 
