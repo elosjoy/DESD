@@ -23,6 +23,7 @@
     <p><strong>Producer:</strong> {{ product.producer.producer_name }}</p>
     <p><strong>Price:</strong> £{{ product.price }}</p>
     <p><strong>Availability:</strong> {{ product.get_availability_status_display }}</p>
+    <p><strong>Seasonal status:</strong> {{ product.get_seasonal_availability_display }}</p>
     <p><strong>In stock:</strong> {{ product.stock_quantity }}</p>
   </header>
 
@@ -35,12 +36,16 @@
 
   <section aria-labelledby="add-cart-heading" class="stack">
     <h2 id="add-cart-heading">Add to cart</h2>
-    <form method="post" action="{% url 'marketplace:add_to_cart' product.id %}" class="actions">
-      {% csrf_token %}
-      <input type="hidden" name="next" value="{% url 'marketplace:product_detail' product.id %}" />
-      <label for="quantity">Quantity</label>
-      <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" />
-      <button type="submit">Add to cart</button>
-    </form>
+    {% if product.is_orderable %}
+      <form method="post" action="{% url 'marketplace:add_to_cart' product.id %}" class="actions">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'marketplace:product_detail' product.id %}" />
+        <label for="quantity">Quantity</label>
+        <input id="quantity" type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" />
+        <button type="submit">Add to cart</button>
+      </form>
+    {% else %}
+      <p class="muted">This product is currently unavailable for ordering.</p>
+    {% endif %}
   </section>
 {% endblock %}

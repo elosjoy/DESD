@@ -37,6 +37,7 @@
           <li>
             <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
             ({{ p.category.name }}) by {{ p.producer.producer_name }} - GBP {{ p.price }}
+            - {{ p.get_seasonal_availability_display }}
             {% if p.description %}
               <br />
               <span class="muted">{{ p.description }}</span>

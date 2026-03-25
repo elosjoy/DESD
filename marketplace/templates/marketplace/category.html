@@ -43,13 +43,18 @@
               <td>{{ p.producer.producer_name }}</td>
               <td>
                 {{ p.get_availability_status_display }}
-                <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" class="actions">
-                  {% csrf_token %}
-                  <input type="hidden" name="next" value="{% url 'marketplace:category_products' category.slug %}" />
-                  <label for="qty-{{ p.id }}">Qty</label>
-                  <input id="qty-{{ p.id }}" type="number" name="quantity" value="1" min="1" max="{{ p.stock_quantity }}" />
-                  <button type="submit">Add to cart</button>
-                </form>
+                | {{ p.get_seasonal_availability_display }}
+                {% if p.is_orderable %}
+                  <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" class="actions">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'marketplace:category_products' category.slug %}" />
+                    <label for="qty-{{ p.id }}">Qty</label>
+                    <input id="qty-{{ p.id }}" type="number" name="quantity" value="1" min="1" max="{{ p.stock_quantity }}" />
+                    <button type="submit">Add to cart</button>
+                  </form>
+                {% else %}
+                  <span class="muted">Unavailable</span>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

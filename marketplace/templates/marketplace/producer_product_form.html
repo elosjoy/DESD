@@ -69,6 +69,12 @@
       {{ form.availability_status.errors }}
     </div>
 
+    <div class="form-row">
+      <label for="{{ form.seasonal_availability.id_for_label }}">{{ form.seasonal_availability.label }}</label>
+      {{ form.seasonal_availability }}
+      {{ form.seasonal_availability.errors }}
+    </div>
+
     <div class="actions">
       <button type="submit">Save product</button>
       <a href="{% url 'marketplace:producer_products' %}">Cancel</a>

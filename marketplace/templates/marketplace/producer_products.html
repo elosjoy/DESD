@@ -31,6 +31,7 @@
           <th scope="col">Price</th>
           <th scope="col">Stock</th>
           <th scope="col">Availability</th>
+          <th scope="col">Seasonal</th>
         </tr>
       </thead>
       <tbody>
@@ -41,6 +42,7 @@
             <td>£{{ product.price }}</td>
             <td>{{ product.stock_quantity }}</td>
             <td>{{ product.get_availability_status_display }}</td>
+            <td>{{ product.get_seasonal_availability_display }}</td>
           </tr>
         {% endfor %}
       </tbody>

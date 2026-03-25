@@ -292,6 +292,9 @@
         <a href="{% url 'marketplace:cart_detail' %}" class="button-link">View cart{% if cart_total_items %} ({{ cart_total_items }}){% endif %}</a>
         {% if user.is_authenticated %}
           <a href="{% url 'marketplace:producer_products' %}" class="button-link">My products</a>
+          <a href="{% url 'marketplace:producer_orders' %}" class="button-link">Incoming orders</a>
+          <a href="{% url 'marketplace:customer_orders' %}" class="button-link">My orders</a>
+          <a href="{% url 'marketplace:producer_weekly_settlement' %}" class="button-link">Weekly settlement</a>
           <form action="/accounts/logout/" method="post" style="margin: 0;">
             {% csrf_token %}
             <button type="submit">Log out</button>
