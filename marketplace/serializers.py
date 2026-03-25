@@ -59,6 +59,11 @@ class ProducerRegistrationSerializer(serializers.Serializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    def validate_allergen_info(self, value):
+        if not (value or "").strip():
+            raise serializers.ValidationError("Allergen information is required. Use 'No common allergens' where appropriate.")
+        return value
+
     class Meta:
         model = Product
         fields = [
@@ -66,6 +71,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'name',
             'price',
             'unit',
+            'is_certified_organic',
             'category',
             'description',
             'allergen_info',

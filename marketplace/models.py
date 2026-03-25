@@ -54,6 +54,7 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     unit = models.CharField(max_length=50, blank=True)
+    is_certified_organic = models.BooleanField(default=False)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     producer = models.ForeignKey(ProducerProfile, on_delete=models.CASCADE, related_name='products')
     description = models.TextField(blank=True)
@@ -67,3 +68,30 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductUpdateHistory(models.Model):
+    ACTION_CREATE = "CREATE"
+    ACTION_UPDATE = "UPDATE"
+    ACTION_STOCK_UPDATE = "STOCK_UPDATE"
+
+    ACTION_CHOICES = [
+        (ACTION_CREATE, "Create"),
+        (ACTION_UPDATE, "Update"),
+        (ACTION_STOCK_UPDATE, "Stock Update"),
+    ]
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="update_history")
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    previous_stock_quantity = models.IntegerField(null=True, blank=True)
+    new_stock_quantity = models.IntegerField(null=True, blank=True)
+    previous_availability_status = models.CharField(max_length=20, blank=True)
+    new_availability_status = models.CharField(max_length=20, blank=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at"]
+
+    def __str__(self):
+        return f"{self.product.name} {self.action} at {self.changed_at}"

@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
+from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from rest_framework import generics, status
@@ -10,7 +11,7 @@ from .forms import CustomerRegistrationForm, ProducerRegistrationForm, ProducerP
 from rest_framework.decorators import api_view
 from django.contrib.auth import authenticate, login
 from .serializers import ProducerRegistrationSerializer, ProductSerializer
-from .models import Category, Product, ProducerProfile
+from .models import Category, Product, ProducerProfile, ProductUpdateHistory
 from .cart import Cart
 from django.contrib.auth import get_user_model
 
@@ -21,21 +22,50 @@ def home(request):
     cart = Cart(request)
     categories = Category.objects.all()
     query = request.GET.get("q", "").strip()
-    products = Product.objects.none()
+    organic_filter = request.GET.get("organic", "").strip()
+    allergen_presence = request.GET.get("allergen_presence", "").strip()
+    allergen_query = request.GET.get("allergen", "").strip()
+    min_price = request.GET.get("min_price", "").strip()
+    max_price = request.GET.get("max_price", "").strip()
+
+    products = Product.objects.select_related("producer", "category").filter(
+        availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
+    )
+
+    if organic_filter == "certified":
+        products = products.filter(is_certified_organic=True)
+    elif organic_filter == "not_certified":
+        products = products.filter(is_certified_organic=False)
+
+    if allergen_presence == "contains":
+        products = products.exclude(allergen_info__exact="")
+    elif allergen_presence == "none":
+        products = products.filter(Q(allergen_info__exact="") | Q(allergen_info__iexact="No common allergens"))
+
+    if allergen_query:
+        products = products.filter(allergen_info__icontains=allergen_query)
+
+    if min_price:
+        try:
+            products = products.filter(price__gte=Decimal(min_price))
+        except InvalidOperation:
+            messages.error(request, "Min price must be a valid number.")
+
+    if max_price:
+        try:
+            products = products.filter(price__lte=Decimal(max_price))
+        except InvalidOperation:
+            messages.error(request, "Max price must be a valid number.")
 
     if query:
-        products = (
-            Product.objects.select_related("producer", "category")
-            .filter(
-                availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
-            )
-            .filter(
-                Q(name__icontains=query)
-                | Q(description__icontains=query)
-                | Q(producer__producer_name__icontains=query)
-            )
-            .distinct()
+        products = products.filter(
+            Q(name__icontains=query)
+            | Q(description__icontains=query)
+            | Q(producer__producer_name__icontains=query)
+            | Q(allergen_info__icontains=query)
         )
+
+    products = products.distinct()
 
     is_producer = request.user.is_authenticated and ProducerProfile.objects.filter(user=request.user).exists()
 
@@ -43,9 +73,13 @@ def home(request):
         "categories": categories,
         "search_query": query,
         "search_results": products,
-        "search_performed": bool(query),
+        "search_performed": bool(query or organic_filter or allergen_presence or allergen_query or min_price or max_price),
+        "organic_filter": organic_filter,
+        "allergen_presence": allergen_presence,
+        "allergen_query": allergen_query,
+        "min_price": min_price,
+        "max_price": max_price,
         "cart_total_items": cart.get_total_items(),
-        "is_producer": is_producer,
         "is_producer": is_producer,
     }
     return render(request, "marketplace/home.html", context)
@@ -86,10 +120,11 @@ def producer_products(request):
         return redirect("marketplace:register_producer")
 
     products = Product.objects.filter(producer=producer).select_related("category")
+    recent_updates = ProductUpdateHistory.objects.filter(product__producer=producer).select_related("product")[:10]
     return render(
         request,
         "marketplace/producer_products.html",
-        {"producer": producer, "products": products},
+        {"producer": producer, "products": products, "recent_updates": recent_updates},
     )
 
 
@@ -111,7 +146,16 @@ def producer_product_create(request):
             product = form.save(commit=False)
             product.producer = producer
             product.save()
+            ProductUpdateHistory.objects.create(
+                product=product,
+                changed_by=request.user,
+                action=ProductUpdateHistory.ACTION_CREATE,
+                new_stock_quantity=product.stock_quantity,
+                new_availability_status=product.availability_status,
+            )
             messages.success(request, "Product listed successfully.")
+            if product.stock_quantity <= 5:
+                messages.warning(request, f"Low stock alert: {product.name} has only {product.stock_quantity} left.")
             return redirect("marketplace:producer_products")
     else:
         form = ProducerProductForm()
@@ -119,19 +163,139 @@ def producer_product_create(request):
     return render(request, "marketplace/producer_product_form.html", {"form": form})
 
 
+@login_required
+def producer_product_edit(request, pk):
+    producer = get_object_or_404(ProducerProfile, user=request.user)
+    product = get_object_or_404(Product, pk=pk, producer=producer)
+
+    if request.method == "POST":
+        previous_stock = product.stock_quantity
+        previous_status = product.availability_status
+        form = ProducerProductForm(request.POST, instance=product)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.producer = producer
+            updated.save()
+            ProductUpdateHistory.objects.create(
+                product=updated,
+                changed_by=request.user,
+                action=ProductUpdateHistory.ACTION_UPDATE,
+                previous_stock_quantity=previous_stock,
+                new_stock_quantity=updated.stock_quantity,
+                previous_availability_status=previous_status,
+                new_availability_status=updated.availability_status,
+            )
+            messages.success(request, "Product updated successfully.")
+            if updated.stock_quantity <= 5:
+                messages.warning(request, f"Low stock alert: {updated.name} has only {updated.stock_quantity} left.")
+            return redirect("marketplace:producer_products")
+    else:
+        form = ProducerProductForm(instance=product)
+
+    return render(
+        request,
+        "marketplace/producer_product_form.html",
+        {"form": form, "product": product},
+    )
+
+
+@login_required
+@require_POST
+def producer_product_delete(request, pk):
+    producer = get_object_or_404(ProducerProfile, user=request.user)
+    product = get_object_or_404(Product, pk=pk, producer=producer)
+    product_name = product.name
+    product.delete()
+    messages.success(request, f"Removed product: {product_name}.")
+    return redirect("marketplace:producer_products")
+
+
+@login_required
+@require_POST
+def producer_product_update_stock(request, pk):
+    producer = get_object_or_404(ProducerProfile, user=request.user)
+    product = get_object_or_404(Product, pk=pk, producer=producer)
+    previous_stock = product.stock_quantity
+    previous_status = product.availability_status
+
+    quantity_raw = request.POST.get("stock_quantity", "")
+    try:
+        quantity = int(quantity_raw)
+    except (TypeError, ValueError):
+        messages.error(request, "Stock quantity must be a valid number.")
+        return redirect("marketplace:producer_products")
+
+    if quantity < 0:
+        messages.error(request, "Stock quantity cannot be negative.")
+        return redirect("marketplace:producer_products")
+
+    product.stock_quantity = quantity
+    product.save(update_fields=["stock_quantity"])
+    ProductUpdateHistory.objects.create(
+        product=product,
+        changed_by=request.user,
+        action=ProductUpdateHistory.ACTION_STOCK_UPDATE,
+        previous_stock_quantity=previous_stock,
+        new_stock_quantity=quantity,
+        previous_availability_status=previous_status,
+        new_availability_status=product.availability_status,
+    )
+    messages.success(request, f"Updated stock for {product.name} to {quantity}.")
+    if quantity <= 5:
+        messages.warning(request, f"Low stock alert: {product.name} has only {quantity} left.")
+    return redirect("marketplace:producer_products")
+
+
 def category_products(request, slug):
     cart = Cart(request)
     category = get_object_or_404(Category, slug=slug)
+    organic_filter = request.GET.get("organic", "").strip()
+    allergen_presence = request.GET.get("allergen_presence", "").strip()
+    allergen_query = request.GET.get("allergen", "").strip()
+    min_price = request.GET.get("min_price", "").strip()
+    max_price = request.GET.get("max_price", "").strip()
+
     products = Product.objects.filter(
         category=category,
         availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
     )
+
+    if organic_filter == "certified":
+        products = products.filter(is_certified_organic=True)
+    elif organic_filter == "not_certified":
+        products = products.filter(is_certified_organic=False)
+
+    if allergen_presence == "contains":
+        products = products.exclude(allergen_info__exact="")
+    elif allergen_presence == "none":
+        products = products.filter(Q(allergen_info__exact="") | Q(allergen_info__iexact="No common allergens"))
+
+    if allergen_query:
+        products = products.filter(allergen_info__icontains=allergen_query)
+
+    if min_price:
+        try:
+            products = products.filter(price__gte=Decimal(min_price))
+        except InvalidOperation:
+            messages.error(request, "Min price must be a valid number.")
+
+    if max_price:
+        try:
+            products = products.filter(price__lte=Decimal(max_price))
+        except InvalidOperation:
+            messages.error(request, "Max price must be a valid number.")
+
     return render(
         request,
         "marketplace/category.html",
         {
             "category": category,
             "products": products,
+            "organic_filter": organic_filter,
+            "allergen_presence": allergen_presence,
+            "allergen_query": allergen_query,
+            "min_price": min_price,
+            "max_price": max_price,
             "cart_total_items": cart.get_total_items(),
         },
     )
@@ -164,6 +328,11 @@ def cart_detail(request):
 def add_to_cart(request, product_id):
     cart = Cart(request)
     product = get_object_or_404(Product, pk=product_id)
+
+    allergen_ack = request.POST.get("allergen_ack") == "on"
+    if not allergen_ack:
+        messages.error(request, "Please review and acknowledge allergen information before adding this item to cart.")
+        return redirect("marketplace:product_detail", pk=product.id)
 
     quantity_raw = request.POST.get("quantity", "1")
     try:
