@@ -32,6 +32,7 @@
           <th scope="col">Stock</th>
           <th scope="col">Availability</th>
           <th scope="col">Seasonal</th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -40,13 +41,53 @@
             <td>{{ product.name }}</td>
             <td>{{ product.category.name }}</td>
             <td>£{{ product.price }}</td>
-            <td>{{ product.stock_quantity }}</td>
+            <td>
+              <form method="post" action="{% url 'marketplace:producer_update_product_availability' product.id %}" class="product-update-form">
+                {% csrf_token %}
+                <div class="form-row">
+                  <input type="number" name="stock_quantity" value="{{ product.stock_quantity }}" min="0" placeholder="Stock" style="width: 70px;">
+                  <select name="availability_status" style="width: 130px;">
+                    {% for value, label in product.STATUS_CHOICES %}
+                      <option value="{{ value }}" {% if product.availability_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="small-btn">Update</button>
+                </div>
+              </form>
+            </td>
             <td>{{ product.get_availability_status_display }}</td>
             <td>{{ product.get_seasonal_availability_display }}</td>
+            <td>
+              <a href="{% url 'marketplace:producer_product_create' %}" class="small-link">Full Edit</a>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+
+    <style>
+      .product-update-form {
+        display: inline;
+      }
+      .form-row {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .form-row input,
+      .form-row select {
+        padding: 4px;
+        font-size: 0.9em;
+      }
+      .small-btn {
+        padding: 4px 8px;
+        font-size: 0.85em;
+        white-space: nowrap;
+      }
+      .small-link {
+        font-size: 0.9em;
+      }
+    </style>
   {% else %}
     <p>No products listed yet.</p>
   {% endif %}
