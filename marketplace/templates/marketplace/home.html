@@ -62,6 +62,9 @@
           <li>
             <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
             ({{ p.category.name }}) by {{ p.producer.producer_name }} - GBP {{ p.price }}{% if p.unit %} per {{ p.unit }}{% endif %}
+            {% if p.availability_status == 'UNAVAILABLE' or p.availability_status == 'OUT_OF_SEASON' %}
+              <strong style="color: red;">[{{ p.get_availability_status_display }}]</strong>
+            {% endif %}
             <br />
             {% if p.is_certified_organic %}
               <strong>Certified Organic</strong>

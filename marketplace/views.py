@@ -28,9 +28,8 @@ def home(request):
     min_price = request.GET.get("min_price", "").strip()
     max_price = request.GET.get("max_price", "").strip()
 
-    products = Product.objects.select_related("producer", "category").filter(
-        availability_status__in=[Product.AVAILABLE, Product.IN_SEASON],
-    )
+    # Show all products regardless of availability (template will mark unavailable items)
+    products = Product.objects.select_related("producer", "category").all()
 
     if organic_filter == "certified":
         products = products.filter(is_certified_organic=True)
@@ -39,11 +38,16 @@ def home(request):
 
     if allergen_presence == "contains":
         products = products.exclude(allergen_info__exact="")
+        # Only apply allergen_query if looking for products that contain allergens
+        if allergen_query:
+            products = products.filter(allergen_info__icontains=allergen_query)
     elif allergen_presence == "none":
         products = products.filter(Q(allergen_info__exact="") | Q(allergen_info__iexact="No common allergens"))
-
-    if allergen_query:
-        products = products.filter(allergen_info__icontains=allergen_query)
+        # Don't apply allergen_query when filtering for allergen-free items
+    else:
+        # If allergen_presence is not set, apply allergen_query as a general search
+        if allergen_query:
+            products = products.filter(allergen_info__icontains=allergen_query)
 
     if min_price:
         try:
