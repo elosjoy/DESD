@@ -62,6 +62,10 @@
     </table>
 
     <p><strong>Grand total:</strong> £{{ cart.get_total_price }}</p>
+    <form method="post" action="{% url 'marketplace:submit_cart' %}">
+      {% csrf_token %}
+      <button type="submit">Submit Cart</button>
+    </form>
   {% else %}
     <p>Your cart is empty.</p>
   {% endif %}

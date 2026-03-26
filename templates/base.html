@@ -55,6 +55,15 @@
       letter-spacing: 0.01em;
     }
 
+    .site-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .site-title a:hover {
+      text-decoration: underline;
+    }
+
     .site-subtitle {
       margin: 2px 0 0;
       color: var(--muted);
@@ -286,7 +295,7 @@
   <div class="page">
     <header class="site-header">
       <div>
-        <p class="site-title"><strong>Food Marketplace</strong></p>
+        <p class="site-title"><strong><a href="{% url 'marketplace:home' %}">Food Marketplace</a></strong></p>
       </div>
       <div class="inline-links" aria-label="Account links">
         <a href="{% url 'marketplace:cart_detail' %}" class="button-link">View cart{% if cart_total_items %} ({{ cart_total_items }}){% endif %}</a>
