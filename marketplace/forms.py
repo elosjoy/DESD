@@ -112,6 +112,17 @@ class ProducerProductForm(forms.ModelForm):
         ]
 
 
+class ProductAvailabilityUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ["availability_status", "stock_quantity"]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['availability_status'].required = False
+        self.fields['stock_quantity'].required = False
+
+
 class ProducerOrderStatusUpdateForm(forms.Form):
     new_status = forms.ChoiceField(choices=[])
     producer_note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))

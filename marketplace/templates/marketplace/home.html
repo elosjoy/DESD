@@ -3,14 +3,83 @@
 {% block title %}Marketplace Home{% endblock %}
 
 {% block content %}
-  <header>
-    <h1>Marketplace</h1>
-    <p class="muted">Browse by category or search for a specific product.</p>
-  </header>
+  <style>
+    .home-hero {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f7fffc 0%, #eef7ff 100%);
+      margin-bottom: 16px;
+    }
 
-  <nav aria-label="Primary links" class="inline-links">
-    <a href="{% url 'marketplace:home' %}">Refresh home</a>
-  </nav>
+    .home-hero h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .home-layout {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.3fr 1fr;
+    }
+
+    .home-panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .category-grid {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-grid a {
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fafcfe;
+      font-weight: 600;
+    }
+
+    .search-results {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .search-results li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    @media (max-width: 800px) {
+      .home-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .category-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <header class="home-hero">
+    <h1>Fresh food from local producers</h1>
+    <p class="muted">Browse by category, search quickly, and build your cart in minutes.</p>
+  </header>
 
   {% if messages %}
     <section class="messages" aria-label="Messages">
@@ -22,43 +91,43 @@
     </section>
   {% endif %}
 
-  <section aria-labelledby="search-heading" class="stack">
-    <h2 id="search-heading">Search products</h2>
-    <form method="get" action="{% url 'marketplace:home' %}" class="actions">
-      <label for="search-input">Keyword</label>
-      <input id="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Try apples, honey, or producer name" />
-      <button type="submit">Search</button>
-    </form>
+  <section class="home-layout" aria-label="Marketplace home sections">
+    <section aria-labelledby="search-heading" class="home-panel">
+      <h2 id="search-heading">Search products</h2>
+      <form method="get" action="{% url 'marketplace:home' %}" class="actions">
+        <label for="search-input">Keyword</label>
+        <input id="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Try apples, honey, or producer name" />
+        <button type="submit">Search</button>
+      </form>
 
-    {% if search_performed %}
-      <h3>Results for "{{ search_query }}"</h3>
-      <ul>
-        {% for p in search_results %}
-          <li>
-            <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
-            ({{ p.category.name }}) by {{ p.producer.producer_name }} - GBP {{ p.price }}
-            - {{ p.get_seasonal_availability_display }}
-            {% if p.description %}
-              <br />
-              <span class="muted">{{ p.description }}</span>
-            {% endif %}
-          </li>
+      {% if search_performed %}
+        <h3>Results for "{{ search_query }}"</h3>
+        <ul class="search-results">
+          {% for p in search_results %}
+            <li>
+              <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
+              <div class="muted">{{ p.category.name }} by {{ p.producer.producer_name }} | GBP {{ p.price }} | {{ p.get_seasonal_availability_display }}</div>
+              {% if p.description %}
+                <div class="muted">{{ p.description }}</div>
+              {% endif %}
+            </li>
+          {% empty %}
+            <li>No matching products found.</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="categories-heading" class="home-panel">
+      <h2 id="categories-heading">Browse categories</h2>
+      <ul class="category-grid">
+        {% for c in categories %}
+          <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
         {% empty %}
-          <li>No matching products found.</li>
+          <li>No categories yet. Add some in /admin/</li>
         {% endfor %}
       </ul>
-    {% endif %}
-  </section>
-
-  <section aria-labelledby="categories-heading" class="stack">
-    <h2 id="categories-heading">Categories</h2>
-    <ul>
-      {% for c in categories %}
-        <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
-      {% empty %}
-        <li>No categories yet. Add some in /admin/</li>
-      {% endfor %}
-    </ul>
+    </section>
   </section>
 
 {% endblock %}

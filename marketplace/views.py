@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import transaction
 from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -14,6 +15,7 @@ from .forms import (
     ProducerRegistrationForm,
     ProducerProductForm,
     ProducerOrderStatusUpdateForm,
+    ProductAvailabilityUpdateForm,
 )
 from .serializers import ProducerRegistrationSerializer, ProductSerializer, ProducerOrderItemSerializer
 from .models import Category, Product, ProducerProfile, Order, OrderItem, Settlement
@@ -120,6 +122,39 @@ def producer_product_create(request):
         form = ProducerProductForm()
 
     return render(request, "marketplace/producer_product_form.html", {"form": form})
+
+
+@login_required
+@require_POST
+def producer_update_product_availability(request, product_id):
+    # Security check: producer can only update their own products.
+    try:
+        producer = ProducerProfile.objects.get(user=request.user)
+    except ProducerProfile.DoesNotExist:
+        messages.error(request, "Only producer accounts can update product availability.")
+        return redirect("marketplace:home")
+
+    product = get_object_or_404(Product, id=product_id, producer=producer)
+    form = ProductAvailabilityUpdateForm(request.POST, instance=product)
+
+    if form.is_valid():
+        if 'availability_status' in request.POST and request.POST.get('availability_status'):
+            product.availability_status = form.cleaned_data['availability_status']
+        if 'stock_quantity' in request.POST:
+            try:
+                product.stock_quantity = int(request.POST.get('stock_quantity', product.stock_quantity))
+            except (ValueError, TypeError):
+                pass
+        product.save()
+        messages.success(
+            request,
+            f"Updated {product.name}: {product.get_availability_status_display()}, Stock: {product.stock_quantity}",
+        )
+    else:
+        error_msg = "; ".join([f"{field}: {error}" for field, errors in form.errors.items() for error in errors])
+        messages.error(request, f"Failed to update: {error_msg}")
+
+    return redirect("marketplace:producer_products")
 
 
 @login_required
@@ -281,6 +316,74 @@ def cart_detail(request):
         "marketplace/cart.html",
         {"cart": cart, "cart_total_items": cart.get_total_items()},
     )
+
+
+@login_required
+@require_POST
+def submit_cart(request):
+    cart = Cart(request)
+    cart_items = list(cart)
+
+    if not cart_items:
+        messages.error(request, "Your cart is empty.")
+        return redirect("marketplace:cart_detail")
+
+    unavailable = []
+    insufficient_stock = []
+    total_amount = Decimal("0.00")
+
+    for item in cart_items:
+        product = item["product"]
+        quantity = item["quantity"]
+
+        if not product.is_orderable():
+            unavailable.append(product.name)
+            continue
+
+        if quantity > product.stock_quantity:
+            insufficient_stock.append(f"{product.name} (available: {product.stock_quantity})")
+            continue
+
+        total_amount += product.price * quantity
+
+    if unavailable or insufficient_stock:
+        if unavailable:
+            messages.error(request, f"These products are no longer orderable: {', '.join(unavailable)}")
+        if insufficient_stock:
+            messages.error(request, f"Insufficient stock for: {', '.join(insufficient_stock)}")
+        messages.info(request, "Please update your cart and try again.")
+        return redirect("marketplace:cart_detail")
+
+    with transaction.atomic():
+        order = Order.objects.create(
+            customer=request.user,
+            status=Order.PENDING,
+            total_amount=total_amount,
+        )
+
+        for item in cart_items:
+            product = item["product"]
+            quantity = item["quantity"]
+
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                producer=product.producer,
+                quantity=quantity,
+                unit_price=product.price,
+                status=OrderItem.PENDING,
+            )
+
+            product.stock_quantity -= quantity
+            if product.stock_quantity == 0:
+                product.availability_status = Product.UNAVAILABLE
+                product.save(update_fields=["stock_quantity", "availability_status"])
+            else:
+                product.save(update_fields=["stock_quantity"])
+
+    cart.clear()
+    messages.success(request, f"Order #{order.id} submitted successfully.")
+    return redirect("marketplace:customer_order_detail", order_id=order.id)
 
 
 @require_POST
