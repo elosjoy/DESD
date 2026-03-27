@@ -4,8 +4,13 @@
 
 {% block content %}
   <header>
-    <h1>Add new product</h1>
-    <p class="muted">Fill in product details to publish in the marketplace.</p>
+    {% if product %}
+      <h1>Edit product</h1>
+      <p class="muted">Update details for {{ product.name }}.</p>
+    {% else %}
+      <h1>Add new product</h1>
+      <p class="muted">Fill in product details to publish in the marketplace.</p>
+    {% endif %}
   </header>
 
   {% if form.non_field_errors %}
@@ -34,6 +39,12 @@
     </div>
 
     <div class="form-row">
+      <label for="{{ form.unit.id_for_label }}">{{ form.unit.label }}</label>
+      {{ form.unit }}
+      {{ form.unit.errors }}
+    </div>
+
+    <div class="form-row">
       <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
       {{ form.category }}
       {{ form.category.errors }}
@@ -46,9 +57,16 @@
     </div>
 
     <div class="form-row">
+      <label for="{{ form.is_certified_organic.id_for_label }}">{{ form.is_certified_organic.label }}</label>
+      {{ form.is_certified_organic }}
+      {{ form.is_certified_organic.errors }}
+    </div>
+
+    <div class="form-row">
       <label for="{{ form.allergen_info.id_for_label }}">{{ form.allergen_info.label }}</label>
       {{ form.allergen_info }}
       {{ form.allergen_info.errors }}
+      <small>Provide allergen details or enter "No common allergens".</small>
     </div>
 
     <div class="form-row">
@@ -76,7 +94,11 @@
     </div>
 
     <div class="actions">
-      <button type="submit">Save product</button>
+      {% if product %}
+        <button type="submit">Update product</button>
+      {% else %}
+        <button type="submit">Save product</button>
+      {% endif %}
       <a href="{% url 'marketplace:producer_products' %}">Cancel</a>
     </div>
   </form>

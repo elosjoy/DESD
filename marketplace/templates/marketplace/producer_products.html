@@ -29,6 +29,9 @@
           <th scope="col">Name</th>
           <th scope="col">Category</th>
           <th scope="col">Price</th>
+          <th scope="col">Unit</th>
+          <th scope="col">Organic</th>
+          <th scope="col">Allergens</th>
           <th scope="col">Stock</th>
           <th scope="col">Availability</th>
           <th scope="col">Seasonal</th>
@@ -41,24 +44,35 @@
             <td>{{ product.name }}</td>
             <td>{{ product.category.name }}</td>
             <td>£{{ product.price }}</td>
+            <td>{% if product.unit %}{{ product.unit }}{% else %}-{% endif %}</td>
+            <td>{% if product.is_certified_organic %}Certified{% else %}Not certified{% endif %}</td>
+            <td>{% if product.allergen_info %}{{ product.allergen_info }}{% else %}No common allergens{% endif %}</td>
             <td>
               <form method="post" action="{% url 'marketplace:producer_update_product_availability' product.id %}" class="product-update-form">
                 {% csrf_token %}
                 <div class="form-row">
-                  <input type="number" name="stock_quantity" value="{{ product.stock_quantity }}" min="0" placeholder="Stock" style="width: 70px;">
-                  <select name="availability_status" style="width: 130px;">
+                  <label for="stock-{{ product.id }}" class="visually-hidden">Stock quantity</label>
+                  <input id="stock-{{ product.id }}" type="number" name="stock_quantity" value="{{ product.stock_quantity }}" min="0" />
+                  <label for="availability-{{ product.id }}" class="visually-hidden">Availability</label>
+                  <select id="availability-{{ product.id }}" name="availability_status">
                     {% for value, label in product.STATUS_CHOICES %}
                       <option value="{{ value }}" {% if product.availability_status == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                   </select>
-                  <button type="submit" class="small-btn">Update</button>
+                  <button type="submit">Update</button>
                 </div>
               </form>
             </td>
             <td>{{ product.get_availability_status_display }}</td>
             <td>{{ product.get_seasonal_availability_display }}</td>
             <td>
-              <a href="{% url 'marketplace:producer_product_create' %}" class="small-link">Full Edit</a>
+              <div class="actions">
+                <a href="{% url 'marketplace:producer_product_edit' product.id %}">Edit</a>
+                <form method="post" action="{% url 'marketplace:producer_product_delete' product.id %}" onsubmit="return confirm('Remove this product?');">
+                  {% csrf_token %}
+                  <button type="submit">Remove</button>
+                </form>
+              </div>
             </td>
           </tr>
         {% endfor %}
@@ -91,4 +105,23 @@
   {% else %}
     <p>No products listed yet.</p>
   {% endif %}
+
+  <section aria-labelledby="history-heading">
+    <h2 id="history-heading">Recent inventory updates</h2>
+    <ul>
+      {% for update in recent_updates %}
+        <li>
+          {{ update.changed_at|date:"Y-m-d H:i" }} - {{ update.product.name }} - {{ update.get_action_display }}
+          {% if update.new_stock_quantity is not None %}
+            (stock: {{ update.new_stock_quantity }})
+          {% endif %}
+          {% if update.new_availability_status %}
+            (status: {{ update.new_availability_status }})
+          {% endif %}
+        </li>
+      {% empty %}
+        <li>No updates yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
 {% endblock %}

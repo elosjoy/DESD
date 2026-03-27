@@ -22,6 +22,37 @@
     <p class="muted">Products currently available in this category.</p>
   </header>
 
+  <section aria-labelledby="filter-heading" class="stack">
+    <h2 id="filter-heading">Filter products</h2>
+    <form method="get" action="{% url 'marketplace:category_products' category.slug %}" class="actions">
+      <label for="organic-filter">Organic certification</label>
+      <select id="organic-filter" name="organic">
+        <option value="" {% if not organic_filter %}selected{% endif %}>All</option>
+        <option value="certified" {% if organic_filter == 'certified' %}selected{% endif %}>Certified organic</option>
+        <option value="not_certified" {% if organic_filter == 'not_certified' %}selected{% endif %}>Not certified</option>
+      </select>
+
+      <label for="allergen-presence">Allergen filter</label>
+      <select id="allergen-presence" name="allergen_presence">
+        <option value="" {% if not allergen_presence %}selected{% endif %}>All products</option>
+        <option value="contains" {% if allergen_presence == 'contains' %}selected{% endif %}>Contains allergens</option>
+        <option value="none" {% if allergen_presence == 'none' %}selected{% endif %}>No common allergens</option>
+      </select>
+
+      <label for="allergen-input">Allergen contains</label>
+      <input id="allergen-input" type="text" name="allergen" value="{{ allergen_query }}" placeholder="e.g. nuts" />
+
+      <label for="min-price">Min price</label>
+      <input id="min-price" type="number" step="0.01" name="min_price" value="{{ min_price }}" />
+
+      <label for="max-price">Max price</label>
+      <input id="max-price" type="number" step="0.01" name="max_price" value="{{ max_price }}" />
+
+      <button type="submit">Apply</button>
+      <a href="{% url 'marketplace:category_products' category.slug %}">Clear filters</a>
+    </form>
+  </section>
+
   <section aria-labelledby="products-heading">
     <h2 id="products-heading">Product list</h2>
     {% if products %}
@@ -32,6 +63,7 @@
             <th scope="col">Product</th>
             <th scope="col">Price</th>
             <th scope="col">Producer</th>
+            <th scope="col">Certification and allergens</th>
             <th scope="col">Availability and action</th>
           </tr>
         </thead>
@@ -39,8 +71,17 @@
           {% for p in products %}
             <tr>
               <th scope="row"><a href="{% url 'marketplace:product_detail' p.id %}">{{ p.name }}</a></th>
-              <td>£{{ p.price }}</td>
+              <td>£{{ p.price }}{% if p.unit %} per {{ p.unit }}{% endif %}</td>
               <td>{{ p.producer.producer_name }}</td>
+              <td>
+                {% if p.is_certified_organic %}
+                  <strong>Certified Organic</strong>
+                {% else %}
+                  <strong>Not Certified Organic</strong>
+                {% endif %}
+                <br />
+                <strong>Allergens:</strong> {% if p.allergen_info %}{{ p.allergen_info }}{% else %}No common allergens{% endif %}
+              </td>
               <td>
                 {{ p.get_availability_status_display }}
                 | {{ p.get_seasonal_availability_display }}
@@ -48,12 +89,16 @@
                   <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" class="actions">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'marketplace:category_products' category.slug %}" />
+                    <input type="hidden" name="allergen_ack" value="on" />
                     <label for="qty-{{ p.id }}">Qty</label>
                     <input id="qty-{{ p.id }}" type="number" name="quantity" value="1" min="1" max="{{ p.stock_quantity }}" />
                     <button type="submit">Add to cart</button>
                   </form>
+                  <a href="{% url 'marketplace:product_detail' p.id %}">View details</a>
                 {% else %}
                   <span class="muted">Unavailable</span>
+                  <br />
+                  <a href="{% url 'marketplace:product_detail' p.id %}">View details</a>
                 {% endif %}
               </td>
             </tr>

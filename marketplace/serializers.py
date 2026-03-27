@@ -59,12 +59,19 @@ class ProducerRegistrationSerializer(serializers.Serializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    def validate_allergen_info(self, value):
+        if not (value or "").strip():
+            raise serializers.ValidationError("Allergen information is required. Use 'No common allergens' where appropriate.")
+        return value
+
     class Meta:
         model = Product
         fields = [
             'id',
             'name',
             'price',
+            'unit',
+            'is_certified_organic',
             'category',
             'description',
             'allergen_info',
@@ -73,10 +80,10 @@ class ProductSerializer(serializers.ModelSerializer):
             'availability_status',
             'seasonal_availability',
         ]
-        
+
     def create(self, validated_data):
-        # The producer is passed in the serializer context, its set here before creating the product.
-        validated_data['producer'] = self.context['producer']
+        if 'producer' not in validated_data and 'producer' in self.context:
+            validated_data['producer'] = self.context['producer']
         return Product.objects.create(**validated_data)
 
 

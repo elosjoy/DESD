@@ -51,13 +51,13 @@ class CustomerRegistrationForm(forms.Form):
 
 
 class ProducerRegistrationForm(forms.Form):
-    producer_name = forms.CharField(max_length=200)
-    contact_name = forms.CharField(max_length=200)
+    producer_name = forms.CharField(max_length=200, label="Business name")
+    contact_name = forms.CharField(max_length=200, label="Contact name")
     email = forms.EmailField()
     phone = forms.CharField(max_length=30)
-    address = forms.CharField(widget=forms.Textarea)
+    address = forms.CharField(widget=forms.Textarea, label="Business address")
     postcode = forms.CharField(max_length=20)
-    password1 = forms.CharField(widget=forms.PasswordInput)
+    password1 = forms.CharField(widget=forms.PasswordInput, label="Password")
     password2 = forms.CharField(widget=forms.PasswordInput, label="Confirm password")
 
     def clean_email(self):
@@ -70,13 +70,10 @@ class ProducerRegistrationForm(forms.Form):
         cleaned = super().clean()
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
-
         if p1 and p2 and p1 != p2:
             self.add_error("password2", "Passwords do not match.")
-
         if p1:
             validate_password(p1)
-
         return cleaned
 
     def save(self):
@@ -104,6 +101,8 @@ class ProducerProductForm(forms.ModelForm):
             "price",
             "category",
             "description",
+            "unit",
+            "is_certified_organic",
             "allergen_info",
             "harvest_date",
             "stock_quantity",
@@ -111,16 +110,36 @@ class ProducerProductForm(forms.ModelForm):
             "seasonal_availability",
         ]
 
+    def clean_stock_quantity(self):
+        value = self.cleaned_data["stock_quantity"]
+        if value < 0:
+            raise forms.ValidationError("Stock quantity cannot be negative.")
+        return value
+
+    def clean_allergen_info(self):
+        value = (self.cleaned_data.get("allergen_info") or "").strip()
+        if not value:
+            raise forms.ValidationError(
+                "Allergen information is required. Use 'No common allergens' where appropriate."
+            )
+        return value
+
 
 class ProductAvailabilityUpdateForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = ["availability_status", "stock_quantity"]
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['availability_status'].required = False
-        self.fields['stock_quantity'].required = False
+        self.fields["availability_status"].required = False
+        self.fields["stock_quantity"].required = False
+
+    def clean_stock_quantity(self):
+        value = self.cleaned_data.get("stock_quantity")
+        if value is not None and value < 0:
+            raise forms.ValidationError("Stock quantity cannot be negative.")
+        return value
 
 
 class ProducerOrderStatusUpdateForm(forms.Form):

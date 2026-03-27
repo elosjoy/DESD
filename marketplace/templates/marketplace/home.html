@@ -74,6 +74,12 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .panel-stack {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
   </style>
 
   <header class="home-hero">
@@ -97,7 +103,32 @@
       <form method="get" action="{% url 'marketplace:home' %}" class="actions">
         <label for="search-input">Keyword</label>
         <input id="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Try apples, honey, or producer name" />
+
+        <label for="organic-filter">Organic certification</label>
+        <select id="organic-filter" name="organic">
+          <option value="" {% if not organic_filter %}selected{% endif %}>All</option>
+          <option value="certified" {% if organic_filter == 'certified' %}selected{% endif %}>Certified organic</option>
+          <option value="not_certified" {% if organic_filter == 'not_certified' %}selected{% endif %}>Not certified</option>
+        </select>
+
+        <label for="allergen-presence">Allergen filter</label>
+        <select id="allergen-presence" name="allergen_presence">
+          <option value="" {% if not allergen_presence %}selected{% endif %}>All products</option>
+          <option value="contains" {% if allergen_presence == 'contains' %}selected{% endif %}>Contains allergens</option>
+          <option value="none" {% if allergen_presence == 'none' %}selected{% endif %}>No common allergens</option>
+        </select>
+
+        <label for="allergen-input">Allergen contains</label>
+        <input id="allergen-input" type="text" name="allergen" value="{{ allergen_query }}" placeholder="e.g. nuts, milk, gluten" />
+
+        <label for="min-price">Min price</label>
+        <input id="min-price" type="number" step="0.01" name="min_price" value="{{ min_price }}" />
+
+        <label for="max-price">Max price</label>
+        <input id="max-price" type="number" step="0.01" name="max_price" value="{{ max_price }}" />
+
         <button type="submit">Search</button>
+        <a href="{% url 'marketplace:home' %}">Clear filters</a>
       </form>
 
       {% if search_performed %}
@@ -106,7 +137,21 @@
           {% for p in search_results %}
             <li>
               <a href="{% url 'marketplace:product_detail' p.id %}"><strong>{{ p.name }}</strong></a>
-              <div class="muted">{{ p.category.name }} by {{ p.producer.producer_name }} | GBP {{ p.price }} | {{ p.get_seasonal_availability_display }}</div>
+              <div class="muted">
+                {{ p.category.name }} by {{ p.producer.producer_name }} | GBP {{ p.price }}{% if p.unit %} per {{ p.unit }}{% endif %} | {{ p.get_seasonal_availability_display }}
+              </div>
+              <div>
+                {% if p.is_certified_organic %}
+                  <strong>Certified Organic</strong>
+                {% else %}
+                  <strong>Not Certified Organic</strong>
+                {% endif %}
+                |
+                <strong>Allergens:</strong> {% if p.allergen_info %}{{ p.allergen_info }}{% else %}No common allergens{% endif %}
+              </div>
+              {% if p.availability_status == 'UNAVAILABLE' or p.availability_status == 'OUT_OF_SEASON' %}
+                <div><strong>{{ p.get_availability_status_display }}</strong></div>
+              {% endif %}
               {% if p.description %}
                 <div class="muted">{{ p.description }}</div>
               {% endif %}
@@ -118,15 +163,39 @@
       {% endif %}
     </section>
 
-    <section aria-labelledby="categories-heading" class="home-panel">
-      <h2 id="categories-heading">Browse categories</h2>
-      <ul class="category-grid">
-        {% for c in categories %}
-          <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
+    <section class="panel-stack" aria-label="Marketplace side panels">
+      <section aria-labelledby="account-heading" class="home-panel">
+        <h2 id="account-heading">Account</h2>
+        {% if user.is_authenticated %}
+          <p>You are logged in as <strong>{{ user.username }}</strong>.</p>
+          {% if is_producer %}
+            <p><a href="{% url 'marketplace:producer_products' %}">Manage products</a></p>
+          {% endif %}
+          <p>Cart items: {{ cart_total_items }}</p>
+          <form action="/accounts/logout/" method="post">
+            {% csrf_token %}
+            <button type="submit">Log out</button>
+          </form>
+        {% else %}
+          <p>Sign in to manage your account or create a new profile.</p>
+          <p>
+            <a href="/accounts/login/">Log in</a> |
+            <a href="/register/customer/">Register as customer</a> |
+            <a href="/register/producer/">Register as producer</a>
+          </p>
+        {% endif %}
+      </section>
+
+      <section aria-labelledby="categories-heading" class="home-panel">
+        <h2 id="categories-heading">Browse categories</h2>
+        <ul class="category-grid">
+          {% for c in categories %}
+            <li><a href="{% url 'marketplace:category_products' c.slug %}">{{ c.name }}</a></li>
         {% empty %}
-          <li>No categories yet. Add some in /admin/</li>
+            <li>No categories yet. Add some in /admin/</li>
         {% endfor %}
-      </ul>
+        </ul>
+      </section>
     </section>
   </section>
 
