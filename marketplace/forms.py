@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 
-from .models import CustomerProfile, ProducerProfile, Product, OrderItem
+from .models import CustomerProfile, ProducerProfile, Product
 
 
 class CustomerRegistrationForm(forms.Form):
@@ -51,13 +51,13 @@ class CustomerRegistrationForm(forms.Form):
 
 
 class ProducerRegistrationForm(forms.Form):
-    producer_name = forms.CharField(max_length=200)
-    contact_name = forms.CharField(max_length=200)
+    producer_name = forms.CharField(max_length=200, label="Business name")
+    contact_name = forms.CharField(max_length=200, label="Contact name")
     email = forms.EmailField()
     phone = forms.CharField(max_length=30)
-    address = forms.CharField(widget=forms.Textarea)
+    address = forms.CharField(widget=forms.Textarea, label="Business address")
     postcode = forms.CharField(max_length=20)
-    password1 = forms.CharField(widget=forms.PasswordInput)
+    password1 = forms.CharField(widget=forms.PasswordInput, label="Password")
     password2 = forms.CharField(widget=forms.PasswordInput, label="Confirm password")
 
     def clean_email(self):
@@ -70,13 +70,10 @@ class ProducerRegistrationForm(forms.Form):
         cleaned = super().clean()
         p1 = cleaned.get("password1")
         p2 = cleaned.get("password2")
-
         if p1 and p2 and p1 != p2:
             self.add_error("password2", "Passwords do not match.")
-
         if p1:
             validate_password(p1)
-
         return cleaned
 
     def save(self):
@@ -101,37 +98,25 @@ class ProducerProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name",
-            "price",
             "category",
             "description",
+            "price",
+            "unit",
+            "is_certified_organic",
+            "availability_status",
+            "stock_quantity",
             "allergen_info",
             "harvest_date",
-            "stock_quantity",
-            "availability_status",
-            "seasonal_availability",
         ]
 
+    def clean_stock_quantity(self):
+        value = self.cleaned_data["stock_quantity"]
+        if value < 0:
+            raise forms.ValidationError("Stock quantity cannot be negative.")
+        return value
 
-class ProductAvailabilityUpdateForm(forms.ModelForm):
-    class Meta:
-        model = Product
-        fields = ["availability_status", "stock_quantity"]
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['availability_status'].required = False
-        self.fields['stock_quantity'].required = False
-
-
-class ProducerOrderStatusUpdateForm(forms.Form):
-    new_status = forms.ChoiceField(choices=[])
-    producer_note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
-
-    def __init__(self, *args, **kwargs):
-        allowed_statuses = kwargs.pop("allowed_statuses", [])
-        super().__init__(*args, **kwargs)
-        self.fields["new_status"].choices = [
-            (status, label)
-            for status, label in OrderItem.STATUS_CHOICES
-            if status in allowed_statuses
-        ]
+    def clean_allergen_info(self):
+        value = (self.cleaned_data.get("allergen_info") or "").strip()
+        if not value:
+            raise forms.ValidationError("Allergen information is required. Use 'No common allergens' where appropriate.")
+        return value
