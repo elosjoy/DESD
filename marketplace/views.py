@@ -222,6 +222,8 @@ def producer_update_product_availability(request, product_id):
         error_msg = "; ".join([f"{field}: {error}" for field, errors in form.errors.items() for error in errors])
         messages.error(request, f"Failed to update: {error_msg}")
 
+    return redirect("marketplace:producer_products")
+
 
 @login_required
 def producer_product_edit(request, pk):
