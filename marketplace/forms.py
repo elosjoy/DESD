@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 
-from .models import CustomerProfile, ProducerProfile, Product
+from .models import CustomerProfile, ProducerProfile, Product, OrderItem
 
 
 class CustomerRegistrationForm(forms.Form):
@@ -98,15 +98,16 @@ class ProducerProductForm(forms.ModelForm):
         model = Product
         fields = [
             "name",
+            "price",
             "category",
             "description",
-            "price",
             "unit",
             "is_certified_organic",
-            "availability_status",
-            "stock_quantity",
             "allergen_info",
             "harvest_date",
+            "stock_quantity",
+            "availability_status",
+            "seasonal_availability",
         ]
 
     def clean_stock_quantity(self):
@@ -118,5 +119,38 @@ class ProducerProductForm(forms.ModelForm):
     def clean_allergen_info(self):
         value = (self.cleaned_data.get("allergen_info") or "").strip()
         if not value:
-            raise forms.ValidationError("Allergen information is required. Use 'No common allergens' where appropriate.")
+            raise forms.ValidationError(
+                "Allergen information is required. Use 'No common allergens' where appropriate."
+            )
         return value
+
+
+class ProductAvailabilityUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ["availability_status", "stock_quantity"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["availability_status"].required = False
+        self.fields["stock_quantity"].required = False
+
+    def clean_stock_quantity(self):
+        value = self.cleaned_data.get("stock_quantity")
+        if value is not None and value < 0:
+            raise forms.ValidationError("Stock quantity cannot be negative.")
+        return value
+
+
+class ProducerOrderStatusUpdateForm(forms.Form):
+    new_status = forms.ChoiceField(choices=[])
+    producer_note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, **kwargs):
+        allowed_statuses = kwargs.pop("allowed_statuses", [])
+        super().__init__(*args, **kwargs)
+        self.fields["new_status"].choices = [
+            (status, label)
+            for status, label in OrderItem.STATUS_CHOICES
+            if status in allowed_statuses
+        ]

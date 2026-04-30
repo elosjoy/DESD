@@ -3,10 +3,12 @@ from decimal import Decimal
 from .models import Product
 
 
+# Session-based cart helper used by cart views.
 class Cart:
     SESSION_KEY = "cart"
 
     def __init__(self, request):
+        # Keep cart data inside user session (not in database table).
         self.session = request.session
         cart = self.session.get(self.SESSION_KEY)
         if cart is None:
@@ -15,15 +17,18 @@ class Cart:
         self.cart = cart
 
     def save(self):
+        # Tell Django the session changed and must be saved.
         self.session.modified = True
 
     def _normalize_quantity(self, quantity):
+        # Prevent invalid values like 0 or negatives.
         quantity_value = int(quantity)
         if quantity_value < 1:
             return 1
         return quantity_value
 
     def add(self, product, quantity=1, override_quantity=False):
+        # Store by product id so session can stay JSON-serializable.
         product_id = str(product.id)
         quantity_value = self._normalize_quantity(quantity)
 
@@ -65,6 +70,7 @@ class Cart:
         self.save()
 
     def __iter__(self):
+        # Join cart rows with Product objects for template rendering.
         product_ids = self.cart.keys()
         products = Product.objects.filter(id__in=product_ids)
 
@@ -87,6 +93,7 @@ class Cart:
         return sum(Decimal(item["price"]) * item["quantity"] for item in self.cart.values())
 
     def clear(self):
+        # Remove full cart from session.
         self.session.pop(self.SESSION_KEY, None)
         self.save()
 

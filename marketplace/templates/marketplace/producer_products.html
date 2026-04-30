@@ -34,6 +34,7 @@
           <th scope="col">Allergens</th>
           <th scope="col">Stock</th>
           <th scope="col">Availability</th>
+          <th scope="col">Seasonal</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
@@ -47,14 +48,23 @@
             <td>{% if product.is_certified_organic %}Certified{% else %}Not certified{% endif %}</td>
             <td>{% if product.allergen_info %}{{ product.allergen_info }}{% else %}No common allergens{% endif %}</td>
             <td>
-              <form method="post" action="{% url 'marketplace:producer_product_update_stock' product.id %}" class="actions">
+              <form method="post" action="{% url 'marketplace:producer_update_product_availability' product.id %}" class="product-update-form">
                 {% csrf_token %}
-                <label for="stock-{{ product.id }}" class="visually-hidden">Stock quantity</label>
-                <input id="stock-{{ product.id }}" type="number" name="stock_quantity" value="{{ product.stock_quantity }}" min="0" />
-                <button type="submit">Update stock</button>
+                <div class="form-row">
+                  <label for="stock-{{ product.id }}" class="visually-hidden">Stock quantity</label>
+                  <input id="stock-{{ product.id }}" type="number" name="stock_quantity" value="{{ product.stock_quantity }}" min="0" />
+                  <label for="availability-{{ product.id }}" class="visually-hidden">Availability</label>
+                  <select id="availability-{{ product.id }}" name="availability_status">
+                    {% for value, label in product.STATUS_CHOICES %}
+                      <option value="{{ value }}" {% if product.availability_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit">Update</button>
+                </div>
               </form>
             </td>
             <td>{{ product.get_availability_status_display }}</td>
+            <td>{{ product.get_seasonal_availability_display }}</td>
             <td>
               <div class="actions">
                 <a href="{% url 'marketplace:producer_product_edit' product.id %}">Edit</a>
@@ -68,6 +78,30 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <style>
+      .product-update-form {
+        display: inline;
+      }
+      .form-row {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .form-row input,
+      .form-row select {
+        padding: 4px;
+        font-size: 0.9em;
+      }
+      .small-btn {
+        padding: 4px 8px;
+        font-size: 0.85em;
+        white-space: nowrap;
+      }
+      .small-link {
+        font-size: 0.9em;
+      }
+    </style>
   {% else %}
     <p>No products listed yet.</p>
   {% endif %}

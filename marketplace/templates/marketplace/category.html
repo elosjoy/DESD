@@ -84,8 +84,22 @@
               </td>
               <td>
                 {{ p.get_availability_status_display }}
-                <br />
-                <a href="{% url 'marketplace:product_detail' p.id %}">View details and add to cart</a>
+                | {{ p.get_seasonal_availability_display }}
+                {% if p.is_orderable %}
+                  <form method="post" action="{% url 'marketplace:add_to_cart' p.id %}" class="actions">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'marketplace:category_products' category.slug %}" />
+                    <input type="hidden" name="allergen_ack" value="on" />
+                    <label for="qty-{{ p.id }}">Qty</label>
+                    <input id="qty-{{ p.id }}" type="number" name="quantity" value="1" min="1" max="{{ p.stock_quantity }}" />
+                    <button type="submit">Add to cart</button>
+                  </form>
+                  <a href="{% url 'marketplace:product_detail' p.id %}">View details</a>
+                {% else %}
+                  <span class="muted">Unavailable</span>
+                  <br />
+                  <a href="{% url 'marketplace:product_detail' p.id %}">View details</a>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}
