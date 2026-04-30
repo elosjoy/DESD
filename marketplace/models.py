@@ -268,9 +268,15 @@ class Settlement(models.Model):
     )
     week_start = models.DateField()
     week_end = models.DateField()
+    # Uses Decimal for precision in financial calculations
     total_order_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    commission_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    producer_payment_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    commission_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Commission percentage (e.g., 5.00 for 5%)"
+    )
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    net_payout = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -279,6 +285,43 @@ class Settlement(models.Model):
 
     def __str__(self):
         return f"Settlement {self.week_start} - {self.week_end} ({self.producer})"
+
+    def calculate_commission(self, commission_rate=None):
+        """
+        Calculate commission and net payout based on total_order_value.
+        
+        Args:
+            commission_rate: Optional override of commission percentage.
+                            If None, uses the instance's commission_rate.
+        
+        Returns:
+            Tuple of (commission_amount, net_payout) as Decimals
+        
+        Example:
+            commission_amt, payout = settlement.calculate_commission()
+            # commission_amt = total_order_value * 0.05
+            # payout = total_order_value - commission_amt
+        """
+        from decimal import Decimal, ROUND_HALF_UP
+        
+        rate = commission_rate if commission_rate is not None else self.commission_rate
+        
+        # Convert rate from percentage (5.0) to decimal (0.05)
+        rate_decimal = Decimal(str(rate)) / Decimal('100')
+        
+        # Calculate commission with proper rounding
+        commission = (self.total_order_value * rate_decimal).quantize(
+            Decimal('0.01'),
+            rounding=ROUND_HALF_UP
+        )
+        
+        # Calculate net payout (what producer receives)
+        payout = (self.total_order_value - commission).quantize(
+            Decimal('0.01'),
+            rounding=ROUND_HALF_UP
+        )
+        
+        return commission, payout
 
 
 class OrderStatusUpdate(models.Model):

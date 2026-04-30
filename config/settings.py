@@ -100,3 +100,8 @@ REST_FRAMEWORK = {
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+# Marketplace Commission Settings
+# Commission percentage taken by marketplace (0-100)
+# e.g., 5 means marketplace takes 5%, producer gets 95%
+MARKETPLACE_COMMISSION_RATE = 5.0  # percentage

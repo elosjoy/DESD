@@ -734,51 +734,33 @@ def producer_weekly_settlement(request):
         messages.error(request, "Only producer accounts can view settlements.")
         return redirect("marketplace:home")
 
-    today = timezone.localdate()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
-
-    # Settlement is based on completed/delivered orders for this producer in the selected week.
-    weekly_items = OrderItem.objects.filter(
-        producer=producer,
-        order__status__in=[Order.COMPLETED, Order.DELIVERED],
-        order__delivered_at__date__range=(week_start, week_end),
+    # Get all settlements for this producer, ordered newest first
+    from django.conf import settings
+    settlements = Settlement.objects.filter(producer=producer).order_by('-week_start')
+    
+    # Get commission rate from settings
+    commission_rate = Decimal(str(getattr(settings, 'MARKETPLACE_COMMISSION_RATE', 5.0)))
+    
+    # Calculate totals across all settlements
+    totals = settlements.aggregate(
+        total_sales=Sum('total_order_value'),
+        total_commission=Sum('commission_amount'),
+        total_payout=Sum('net_payout'),
     )
-
-    line_total_expression = ExpressionWrapper(
-        F("quantity") * F("unit_price"),
-        output_field=DecimalField(max_digits=12, decimal_places=2),
-    )
-
-    totals = weekly_items.aggregate(total_order_value=Sum(line_total_expression))
-    total_order_value = totals["total_order_value"] or Decimal("0.00")
-
-    commission_total = (total_order_value * Decimal("0.05")).quantize(Decimal("0.01"))
-    producer_payment_total = (total_order_value - commission_total).quantize(Decimal("0.01"))
-
-    settlement, created = Settlement.objects.get_or_create(
-        producer=producer,
-        week_start=week_start,
-        week_end=week_end,
-        defaults={
-            "total_order_value": total_order_value,
-            "commission_total": commission_total,
-            "producer_payment_total": producer_payment_total,
-        },
-    )
-
-    if not created:
-        settlement.total_order_value = total_order_value
-        settlement.commission_total = commission_total
-        settlement.producer_payment_total = producer_payment_total
-        settlement.save(update_fields=["total_order_value", "commission_total", "producer_payment_total"])
+    
+    total_sales = totals['total_sales'] or Decimal('0.00')
+    total_commission = totals['total_commission'] or Decimal('0.00')
+    total_payout = totals['total_payout'] or Decimal('0.00')
 
     return render(
         request,
         "marketplace/producer_settlement.html",
         {
-            "settlement": settlement,
-            "week_order_count": weekly_items.count(),
+            "settlements": settlements,
+            "commission_rate": commission_rate,
+            "total_sales": total_sales,
+            "total_commission": total_commission,
+            "total_payout": total_payout,
         },
     )
 

@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from .models import ProducerProfile, Product
+from .models import ProducerProfile, Product, OrderItem, Settlement
 
 User = get_user_model()
 
@@ -77,6 +77,72 @@ class ProductSerializer(serializers.ModelSerializer):
             'allergen_info',
             'harvest_date',
             'stock_quantity',
-            'availability_status'
+            'availability_status',
+            'seasonal_availability',
         ]
 
+    def create(self, validated_data):
+        if 'producer' not in validated_data and 'producer' in self.context:
+            validated_data['producer'] = self.context['producer']
+        return Product.objects.create(**validated_data)
+
+
+class ProducerOrderItemSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+    order_status = serializers.CharField(source="order.status", read_only=True)
+    delivered_at = serializers.DateTimeField(source="order.delivered_at", read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id",
+            "order_id",
+            "order_status",
+            "delivered_at",
+            "product",
+            "product_name",
+            "quantity",
+            "unit_price",
+            "line_total",
+        ]
+
+    def get_line_total(self, obj):
+        return obj.quantity * obj.unit_price
+
+
+class SettlementSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Settlement model.
+    Displays producer commission and payout details.
+    """
+    producer_name = serializers.CharField(source="producer.producer_name", read_only=True)
+    week_range = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Settlement
+        fields = [
+            "id",
+            "producer",
+            "producer_name",
+            "week_start",
+            "week_end",
+            "week_range",
+            "total_order_value",
+            "commission_rate",
+            "commission_amount",
+            "net_payout",
+            "created_at",
+        ]
+        read_only_fields = [
+            "total_order_value",
+            "commission_rate",
+            "commission_amount",
+            "net_payout",
+            "created_at",
+        ]
+
+    def get_week_range(self, obj):
+        """Return a human-readable week range."""
+        return f"{obj.week_start} to {obj.week_end}"
