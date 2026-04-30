@@ -893,3 +893,65 @@ class ProducerViewOrdersTests(TestCase):
 # TC-012: Weekly settlements (5% commission)
 # ---------------------------------------------------------------------------
 
+
+class WeeklySettlementTests(TestCase):
+    def setUp(self):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        customer = User.objects.create_user(
+            username="settle_cust@example.com", email="settle_cust@example.com", password="TestPass123!"
+        )
+        prod_user = User.objects.create_user(
+            username="settle_prod@farm.com", email="settle_prod@farm.com", password="TestPass123!"
+        )
+        self.producer = ProducerProfile.objects.create(
+            user=prod_user, producer_name="Settle Farm", contact_name="S",
+            phone="0", address="X", postcode="X1",
+        )
+        category = Category.objects.create(name="Settle Cat", slug="settle-cat")
+        product = Product.objects.create(
+            name="Settle Apple", price=Decimal("10.00"), category=category,
+            producer=self.producer, stock_quantity=100,
+        )
+        self.order = Order.objects.create(
+            customer=customer,
+            status=Order.DELIVERED,
+            total_amount=Decimal("100.00"),
+            delivered_at=timezone.now(),
+        )
+        OrderItem.objects.create(
+            order=self.order, product=product, producer=self.producer,
+            quantity=10, unit_price=Decimal("10.00"),
+        )
+        self.client.login(username="settle_prod@farm.com", password="TestPass123!")
+
+    def test_settlement_page_loads_for_producer(self):
+        response = self.client.get(reverse("marketplace:producer_weekly_settlement"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_five_percent_commission_deducted(self):
+        from .models import Settlement
+        self.client.get(reverse("marketplace:producer_weekly_settlement"))
+        settlement = Settlement.objects.filter(producer=self.producer).first()
+        self.assertIsNotNone(settlement)
+        expected_commission = (settlement.total_order_value * Decimal("0.05")).quantize(Decimal("0.01"))
+        self.assertEqual(settlement.commission_total, expected_commission)
+
+    def test_producer_payment_is_ninety_five_percent(self):
+        from .models import Settlement
+        self.client.get(reverse("marketplace:producer_weekly_settlement"))
+        settlement = Settlement.objects.filter(producer=self.producer).first()
+        self.assertIsNotNone(settlement)
+        expected_payment = settlement.total_order_value - settlement.commission_total
+        self.assertEqual(settlement.producer_payment_total, expected_payment)
+
+    def test_customer_cannot_access_settlement_page(self):
+        self.client.logout()
+        customer_user = User.objects.create_user(
+            username="settle_cust2@example.com", email="settle_cust2@example.com", password="TestPass123!"
+        )
+        self.client.login(username="settle_cust2@example.com", password="TestPass123!")
+        response = self.client.get(reverse("marketplace:producer_weekly_settlement"), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Settle Farm")
