@@ -6,31 +6,52 @@
   <h1>Incoming Orders</h1>
 
   {% if order_items %}
-    {% for item in order_items %}
+    {% regroup order_items by order as grouped_orders %}
+    {% for group in grouped_orders %}
+      {% with order=group.grouper %}
       <fieldset>
-        <legend>Order #{{ item.order.id }} - {{ item.product.name }}</legend>
-        <p><strong>Placed:</strong> {{ item.order.created_at }}</p>
-        <p><strong>Order status:</strong> {{ item.order.get_status_display }}</p>
-        <p><strong>Your item status:</strong> {{ item.get_status_display }}</p>
-        <p><strong>Quantity:</strong> {{ item.quantity }}</p>
+        <legend>Order #{{ order.id }} &mdash; {{ order.created_at|date:"d M Y, H:i" }}</legend>
+        <p><strong>Order status:</strong> {{ order.get_status_display }}</p>
 
-        {% if item.get_allowed_next_statuses %}
-          <form action="{% url 'marketplace:producer_update_order_status' item.id %}" method="post">
-            {% csrf_token %}
-            <label for="new_status_{{ item.id }}">New status</label>
-            <select id="new_status_{{ item.id }}" name="new_status" required>
-              {% for next_status in item.get_allowed_next_statuses %}
-                <option value="{{ next_status }}">{{ next_status|lower|capfirst }}</option>
-              {% endfor %}
-            </select>
-            <label for="producer_note_{{ item.id }}">Note (optional)</label>
-            <textarea id="producer_note_{{ item.id }}" name="producer_note" rows="2"></textarea>
-            <button type="submit">Update Status</button>
-          </form>
-        {% else %}
-          <p class="muted">No further status transitions allowed.</p>
-        {% endif %}
+        <table border="1" cellpadding="6" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Item Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in group.list %}
+            <tr>
+              <td>{{ item.product.name }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>£{{ item.unit_price }}</td>
+              <td>{{ item.get_status_display }}</td>
+              <td>
+                {% if item.get_allowed_next_statuses %}
+                  <form action="{% url 'marketplace:producer_update_order_status' item.id %}" method="post">
+                    {% csrf_token %}
+                    <select name="new_status" required>
+                      {% for next_status in item.get_allowed_next_statuses %}
+                        <option value="{{ next_status }}">{{ next_status|lower|capfirst }}</option>
+                      {% endfor %}
+                    </select>
+                    <textarea name="producer_note" rows="1" placeholder="Note (optional)"></textarea>
+                    <button type="submit">Update</button>
+                  </form>
+                {% else %}
+                  &mdash;
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </fieldset>
+      {% endwith %}
     {% endfor %}
   {% else %}
     <p class="muted">No incoming orders yet.</p>
