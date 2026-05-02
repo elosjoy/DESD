@@ -19,15 +19,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(Settlement)
 class SettlementAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Settlement records.
-    
-    Displays:
-    - Week date range
-    - Producer name
-    - Total sales and commission breakdown
-    - Final net payout to producer
-    """
+    # shows settlement records with commission breakdown in the admin panel
     list_display = (
         'producer_name',
         'week_range',

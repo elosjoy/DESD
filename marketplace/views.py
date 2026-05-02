@@ -182,7 +182,7 @@ def producer_product_create(request):
 @login_required
 @require_POST
 def producer_update_product_availability(request, product_id):
-    # Security check: producer can only update their own products.
+    # only let the product's own producer update it
     try:
         producer = ProducerProfile.objects.get(user=request.user)
     except ProducerProfile.DoesNotExist:
@@ -274,7 +274,7 @@ def producer_product_delete(request, pk):
 
 @login_required
 def producer_orders(request):
-    # Security check for web dashboard: only producers can access incoming orders.
+    # redirect anyone who isn't a producer
     try:
         producer = ProducerProfile.objects.get(user=request.user)
     except ProducerProfile.DoesNotExist:
@@ -297,7 +297,7 @@ def producer_orders(request):
 @login_required
 @require_POST
 def producer_update_order_status(request, order_item_id):
-    # Security check: producer can only update status for their own order items.
+    # make sure the logged-in user is the producer for this item
     try:
         producer = ProducerProfile.objects.get(user=request.user)
     except ProducerProfile.DoesNotExist:
@@ -320,7 +320,7 @@ def producer_update_order_status(request, order_item_id):
     producer_note = form.cleaned_data.get("producer_note", "").strip()
 
     try:
-        # Enforces allowed transitions: Pending -> Confirmed -> Ready -> Delivered.
+        # status transitions are enforced in update_status: Pending -> Confirmed -> Ready -> Delivered
         order_item.update_status(new_status, producer_note=producer_note, updated_by=request.user)
     except Exception:
         messages.error(request, "Status update was rejected due to an invalid transition.")
@@ -335,7 +335,6 @@ def producer_update_order_status(request, order_item_id):
 
 @login_required
 def customer_orders(request):
-    # Security check: customer only sees their own orders.
     orders = (
         Order.objects.filter(customer=request.user)
         .prefetch_related("status_updates")
@@ -347,7 +346,6 @@ def customer_orders(request):
 
 @login_required
 def customer_order_detail(request, order_id):
-    # Security check: customer can only view their own order details.
     order = get_object_or_404(
         Order.objects.prefetch_related("items__product", "status_updates__order_item__product"),
         id=order_id,
@@ -359,7 +357,6 @@ def customer_order_detail(request, order_id):
 @login_required
 @require_POST
 def reorder_from_order(request, order_id):
-    # Security check: customer can only reorder from their own past orders.
     order = get_object_or_404(Order.objects.prefetch_related("items__product"), id=order_id, customer=request.user)
     cart = Cart(request)
 
@@ -698,7 +695,7 @@ class ProducerProductListCreateView(generics.ListCreateAPIView):
     """Producer can create and list their own products"""
     authentication_classes = [CsrfExemptSessionAuthentication]
     serializer_class = ProductSerializer
-    # Security check: user must be logged in and must be a producer.
+    # only authenticated producers can use this
     permission_classes = [IsAuthenticated, IsProducerUser]
 
     def get_queryset(self):
@@ -716,7 +713,7 @@ class ProducerProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Producer can update or delete their own products"""
     authentication_classes = [CsrfExemptSessionAuthentication]
     serializer_class = ProductSerializer
-    # Security check: user must be logged in and must be a producer.
+    # only authenticated producers can use this
     permission_classes = [IsAuthenticated, IsProducerUser]
 
     def get_queryset(self):
@@ -727,7 +724,7 @@ class ProducerProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 @login_required
 def producer_weekly_settlement(request):
-    # Security check for web dashboard: only producers can access settlement data.
+    # redirect non-producers
     try:
         producer = ProducerProfile.objects.get(user=request.user)
     except ProducerProfile.DoesNotExist:
@@ -741,7 +738,7 @@ def producer_weekly_settlement(request):
     # Get commission rate from settings
     commission_rate = Decimal(str(getattr(settings, 'MARKETPLACE_COMMISSION_RATE', 5.0)))
     
-    # Calculate totals across all settlements
+    # total everything up for the summary row
     totals = settlements.aggregate(
         total_sales=Sum('total_order_value'),
         total_commission=Sum('commission_amount'),
@@ -766,10 +763,10 @@ def producer_weekly_settlement(request):
 
 
 class ProducerOrderListView(generics.ListAPIView):
-    """Producer can view only their own completed/delivered order line items."""
+    """API view for producers to list their delivered order items."""
 
     serializer_class = ProducerOrderItemSerializer
-    # Security check: enforce authenticated producer-only access.
+    # only authenticated producers can access this
     permission_classes = [IsAuthenticated, IsProducerUser]
 
     def get_queryset(self):

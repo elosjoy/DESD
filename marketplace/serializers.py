@@ -1,4 +1,4 @@
-#using REST framework serializers to handle producer registration and product management
+# serializers for producer registration, product management and order/settlement data
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -113,10 +113,7 @@ class ProducerOrderItemSerializer(serializers.ModelSerializer):
 
 
 class SettlementSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Settlement model.
-    Displays producer commission and payout details.
-    """
+    # shows the producer's commission and payout details for a given week
     producer_name = serializers.CharField(source="producer.producer_name", read_only=True)
     week_range = serializers.SerializerMethodField()
 

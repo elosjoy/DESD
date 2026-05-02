@@ -3,12 +3,12 @@ from decimal import Decimal
 from .models import Product
 
 
-# Session-based cart helper used by cart views.
+# session-based cart - stores items in the user's session rather than the database
 class Cart:
     SESSION_KEY = "cart"
 
     def __init__(self, request):
-        # Keep cart data inside user session (not in database table).
+        # store the cart in the session
         self.session = request.session
         cart = self.session.get(self.SESSION_KEY)
         if cart is None:
@@ -17,18 +17,18 @@ class Cart:
         self.cart = cart
 
     def save(self):
-        # Tell Django the session changed and must be saved.
+        # mark the session as modified so Django saves it
         self.session.modified = True
 
     def _normalize_quantity(self, quantity):
-        # Prevent invalid values like 0 or negatives.
+        # clamp to at least 1
         quantity_value = int(quantity)
         if quantity_value < 1:
             return 1
         return quantity_value
 
     def add(self, product, quantity=1, override_quantity=False):
-        # Store by product id so session can stay JSON-serializable.
+        # use string id as the key so it's JSON serialisable
         product_id = str(product.id)
         quantity_value = self._normalize_quantity(quantity)
 
@@ -42,35 +42,14 @@ class Cart:
 
         self.save()
 
-    def add_product(self, product, quantity=1):
-        self.add(product, quantity=quantity, override_quantity=False)
-
     def remove(self, product):
         product_id = str(product.id)
         if product_id in self.cart:
             del self.cart[product_id]
             self.save()
 
-    def remove_product(self, product_id):
-        product_id_str = str(product_id)
-        if product_id_str in self.cart:
-            del self.cart[product_id_str]
-            self.save()
-
-    def update_quantity(self, product_id, quantity):
-        product_id_str = str(product_id)
-        if product_id_str not in self.cart:
-            return
-
-        quantity_value = int(quantity)
-        if quantity_value <= 0:
-            del self.cart[product_id_str]
-        else:
-            self.cart[product_id_str]["quantity"] = quantity_value
-        self.save()
-
     def __iter__(self):
-        # Join cart rows with Product objects for template rendering.
+        # look up the actual Product objects so templates can use them
         product_ids = self.cart.keys()
         products = Product.objects.filter(id__in=product_ids)
 
@@ -93,7 +72,7 @@ class Cart:
         return sum(Decimal(item["price"]) * item["quantity"] for item in self.cart.values())
 
     def clear(self):
-        # Remove full cart from session.
+        # remove the cart from the session
         self.session.pop(self.SESSION_KEY, None)
         self.save()
 

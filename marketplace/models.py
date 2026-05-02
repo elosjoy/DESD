@@ -16,7 +16,7 @@ class CustomerProfile(models.Model):
     def __str__(self):
         return self.full_name
 
-# ProducerProfile and Product models are defined.
+
 class ProducerProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     producer_name = models.CharField(max_length=200)
@@ -28,7 +28,7 @@ class ProducerProfile(models.Model):
     def __str__(self):
         return self.producer_name
 
-# Category and Product models are defined.
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
@@ -39,7 +39,7 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-# Product model is defined with availability status choices and related fields.
+
 class Product(models.Model):
     AVAILABLE = "AVAILABLE"
     IN_SEASON = "IN_SEASON"
@@ -108,7 +108,7 @@ class Order(models.Model):
         (CONFIRMED, "Confirmed"),
         (READY, "Ready"),
         (DELIVERED, "Delivered"),
-        # Keep legacy value for compatibility with any existing data.
+        # kept for backwards compatibility
         (COMPLETED, "Completed (legacy)"),
     ]
 
@@ -268,7 +268,7 @@ class Settlement(models.Model):
     )
     week_start = models.DateField()
     week_end = models.DateField()
-    # Uses Decimal for precision in financial calculations
+    # using Decimal to avoid floating point errors with money
     total_order_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     commission_rate = models.DecimalField(
         max_digits=5,
@@ -287,21 +287,7 @@ class Settlement(models.Model):
         return f"Settlement {self.week_start} - {self.week_end} ({self.producer})"
 
     def calculate_commission(self, commission_rate=None):
-        """
-        Calculate commission and net payout based on total_order_value.
-        
-        Args:
-            commission_rate: Optional override of commission percentage.
-                            If None, uses the instance's commission_rate.
-        
-        Returns:
-            Tuple of (commission_amount, net_payout) as Decimals
-        
-        Example:
-            commission_amt, payout = settlement.calculate_commission()
-            # commission_amt = total_order_value * 0.05
-            # payout = total_order_value - commission_amt
-        """
+        # returns (commission_amount, net_payout) - pass a rate to override the stored one
         from decimal import Decimal, ROUND_HALF_UP
         
         rate = commission_rate if commission_rate is not None else self.commission_rate
@@ -309,13 +295,13 @@ class Settlement(models.Model):
         # Convert rate from percentage (5.0) to decimal (0.05)
         rate_decimal = Decimal(str(rate)) / Decimal('100')
         
-        # Calculate commission with proper rounding
+        # round to 2dp
         commission = (self.total_order_value * rate_decimal).quantize(
             Decimal('0.01'),
             rounding=ROUND_HALF_UP
         )
         
-        # Calculate net payout (what producer receives)
+        # what the producer receives after commission is taken
         payout = (self.total_order_value - commission).quantize(
             Decimal('0.01'),
             rounding=ROUND_HALF_UP

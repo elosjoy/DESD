@@ -1,13 +1,10 @@
 """
-Management command: calculate_settlements
+Management command to calculate weekly settlements.
 
 Usage:
-    python manage.py calculate_settlements                    # Calculate for current week
-    python manage.py calculate_settlements --week 0          # Calculate for current week
-    python manage.py calculate_settlements --week -1         # Calculate for last week
-    python manage.py calculate_settlements --producer 5      # Calculate for specific producer (current week)
-
-This command is typically run weekly via a cron job or scheduler.
+    python manage.py calculate_settlements                # current week
+    python manage.py calculate_settlements --week -1      # last week
+    python manage.py calculate_settlements --producer 5   # specific producer only
 """
 
 from django.core.management.base import BaseCommand
@@ -42,7 +39,7 @@ class Command(BaseCommand):
         week_offset = options.get('week', 0)
         producer_id = options.get('producer')
 
-        # Calculate the target week
+        # work out the start and end of the target week
         today = timezone.now().date()
         target_date = today + timedelta(weeks=week_offset)
         week_start, week_end = get_week_boundaries(target_date)
